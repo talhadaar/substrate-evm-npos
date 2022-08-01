@@ -13,7 +13,7 @@ use pallet_ethereum::{
 	Call::transact, EthereumBlockHashMapping, Transaction as EthereumTransaction,
 };
 use pallet_evm::{
-	Account as EVMAccount, EnsureAddressTruncated, GasWeightMapping, HashedAddressMapping, Runner, FeeCalculator
+	Account as EVMAccount, EnsureAddressTruncated, FeeCalculator, HashedAddressMapping, Runner,
 };
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
@@ -30,7 +30,8 @@ use sp_runtime::{
 	generic, impl_opaque_keys,
 	traits::{
 		AccountIdLookup, BlakeTwo256, Block as BlockT, DispatchInfoOf, Dispatchable,
-		IdentifyAccount, NumberFor, OpaqueKeys, PhantomData, PostDispatchInfoOf, Verify, UniqueSaturatedInto
+		IdentifyAccount, NumberFor, OpaqueKeys, PhantomData, PostDispatchInfoOf,
+		UniqueSaturatedInto, Verify,
 	},
 	transaction_validity::{
 		TransactionPriority, TransactionSource, TransactionValidity, TransactionValidityError,

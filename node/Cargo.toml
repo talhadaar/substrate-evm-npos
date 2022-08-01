@@ -59,6 +59,13 @@ sp-block-builder = { version = "4.0.0-dev", git = "https://github.com/paritytech
 sc-basic-authorship = { version = "0.10.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
 substrate-frame-rpc-system = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
 pallet-transaction-payment-rpc = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
+sc-network = { version = "0.10.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.25" }
+fp-rpc = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.25" }
+fc-rpc-core = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.25" }
+fc-rpc = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.25" }
+fc-db = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.25" }
+# TODO multiple versions of this will exist now
+parity-db = { version = "0.3.14" }
 
 # These dependencies are used for runtime benchmarking
 frame-benchmarking = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
