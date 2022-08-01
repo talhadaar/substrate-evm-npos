@@ -1,7 +1,7 @@
 use kories_runtime::{
-	AccountId, BabeConfig, Balance, BalancesConfig, EVMConfig, EthereumConfig, GenesisConfig,
-	GrandpaConfig, SessionConfig, SessionKeys, Signature, StakerStatus, StakingConfig, SudoConfig,
-	SystemConfig, DOLLARS, WASM_BINARY,
+	AccountId, BabeConfig, Balance, BalancesConfig, EVMConfig, GenesisConfig, GrandpaConfig,
+	SessionConfig, SessionKeys, Signature, StakerStatus, StakingConfig, SudoConfig, SystemConfig,
+	DOLLARS, WASM_BINARY,
 };
 use sc_service::ChainType;
 use sp_consensus_babe::AuthorityId as BabeId;
@@ -219,6 +219,8 @@ fn testnet_genesis(
 				map
 			},
 		},
-		ethereum: EthereumConfig {},
+		ethereum: Default::default(),
+		base_fee: Default::default(),
+		dynamic_fee: Default::default(),
 	}
 }

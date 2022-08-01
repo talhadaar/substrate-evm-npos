@@ -1665,6 +1665,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "fp-dynamic-fee"
+version = "1.0.0"
+source = "git+https://github.com/paritytech/frontier.git?branch=polkadot-v0.9.25#ad35a1fe3c0f3d084dce23f8df68d57362a36846"
+dependencies = [
+ "async-trait",
+ "sp-core",
+ "sp-inherents",
+]
+
+[[package]]
 name = "fp-ethereum"
 version = "1.0.0-dev"
 source = "git+https://github.com/paritytech/frontier.git?branch=polkadot-v0.9.25#ad35a1fe3c0f3d084dce23f8df68d57362a36846"
@@ -2872,6 +2882,8 @@ dependencies = [
  "pallet-babe",
  "pallet-bags-list",
  "pallet-balances",
+ "pallet-base-fee",
+ "pallet-dynamic-fee",
  "pallet-election-provider-multi-phase",
  "pallet-ethereum",
  "pallet-evm",
@@ -2879,6 +2891,7 @@ dependencies = [
  "pallet-evm-precompile-sha3fips",
  "pallet-evm-precompile-simple",
  "pallet-grandpa",
+ "pallet-hotfix-sufficients",
  "pallet-session",
  "pallet-staking",
  "pallet-staking-reward-curve",
@@ -4325,6 +4338,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-base-fee"
+version = "1.0.0"
+source = "git+https://github.com/paritytech/frontier.git?branch=polkadot-v0.9.25#ad35a1fe3c0f3d084dce23f8df68d57362a36846"
+dependencies = [
+ "fp-evm",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-runtime",
+]
+
+[[package]]
+name = "pallet-dynamic-fee"
+version = "4.0.0-dev"
+source = "git+https://github.com/paritytech/frontier.git?branch=polkadot-v0.9.25#ad35a1fe3c0f3d084dce23f8df68d57362a36846"
+dependencies = [
+ "async-trait",
+ "fp-dynamic-fee",
+ "fp-evm",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-inherents",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-election-provider-multi-phase"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.25#3348e144f0a2b39ce08bd8e3b976c42fe0c990b9"
@@ -4446,6 +4493,22 @@ dependencies = [
  "sp-runtime",
  "sp-session",
  "sp-staking",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-hotfix-sufficients"
+version = "1.0.0"
+source = "git+https://github.com/paritytech/frontier.git?branch=polkadot-v0.9.25#ad35a1fe3c0f3d084dce23f8df68d57362a36846"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-evm",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-runtime",
  "sp-std",
 ]
 

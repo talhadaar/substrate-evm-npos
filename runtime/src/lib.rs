@@ -17,14 +17,17 @@ use pallet_grandpa::{
 };
 use pallet_session::historical as session_historical;
 use sp_api::impl_runtime_apis;
-use sp_core::{crypto::{KeyTypeId, ByteArray}, OpaqueMetadata, H160, U256};
+use sp_core::{
+	crypto::{ByteArray, KeyTypeId},
+	OpaqueMetadata, H160, U256,
+};
 use sp_runtime::{
 	create_runtime_str,
 	curve::PiecewiseLinear,
 	generic, impl_opaque_keys,
 	traits::{
 		AccountIdLookup, BlakeTwo256, Block as BlockT, DispatchInfoOf, Dispatchable,
-		IdentifyAccount, NumberFor, OpaqueKeys, PostDispatchInfoOf, Verify, PhantomData
+		IdentifyAccount, NumberFor, OpaqueKeys, PhantomData, PostDispatchInfoOf, Verify,
 	},
 	transaction_validity::{
 		TransactionPriority, TransactionSource, TransactionValidity, TransactionValidityError,
@@ -469,6 +472,7 @@ impl pallet_election_provider_multi_phase::MinerConfig for Runtime {
 }
 
 impl pallet_election_provider_multi_phase::Config for Runtime {
+	// TODO revising the unit types
 	type Event = Event;
 	type Currency = Balances;
 	type EstimateCallFee = TransactionPayment;
@@ -543,6 +547,7 @@ impl pallet_staking::BenchmarkingConfig for StakingBenchmarkingConfig {
 }
 
 impl pallet_staking::Config for Runtime {
+	// TODO implement the unit types
 	type MaxNominations = MaxNominations;
 	type Currency = Balances;
 	type CurrencyBalance = Balance;
@@ -576,6 +581,44 @@ impl pallet_sudo::Config for Runtime {
 	type Call = Call;
 }
 
+frame_support::parameter_types! {
+	pub BoundDivision: U256 = U256::from(1024);
+}
+
+impl pallet_dynamic_fee::Config for Runtime {
+	type MinGasPriceBoundDivisor = BoundDivision;
+}
+
+pub struct BaseFeeThreshold;
+impl pallet_base_fee::BaseFeeThreshold for BaseFeeThreshold {
+	fn lower() -> Permill {
+		Permill::zero()
+	}
+	fn ideal() -> Permill {
+		Permill::from_parts(500_000)
+	}
+	fn upper() -> Permill {
+		Permill::from_parts(1_000_000)
+	}
+}
+
+parameter_types! {
+	pub IsActive: bool = false; // TODO revisit this
+	pub DefaultBaseFeePerGas: U256 = U256::from(1_000_000_000);
+}
+
+impl pallet_base_fee::Config for Runtime {
+	type Event = Event;
+	type Threshold = BaseFeeThreshold;
+	type IsActive = IsActive;
+	type DefaultBaseFeePerGas = DefaultBaseFeePerGas;
+}
+
+impl pallet_hotfix_sufficients::Config for Runtime {
+	type AddressMapping = HashedAddressMapping<BlakeTwo256>;
+	type WeightInfo = ();
+}
+
 impl pallet_ethereum::Config for Runtime {
 	type Event = Event;
 	type StateRoot = pallet_ethereum::IntermediateStateRoot<Self>;
@@ -589,7 +632,7 @@ impl<F: FindAuthor<u32>> FindAuthor<H160> for FindAuthorTruncated<F> {
 	{
 		if let Some(author_index) = F::find_author(digests) {
 			let authority_id = Babe::authorities()[author_index as usize].clone().0;
-			return Some(H160::from_slice(&authority_id.to_raw_vec()[4..24]));
+			return Some(H160::from_slice(&authority_id.to_raw_vec()[4..24]))
 		}
 		None
 	}
@@ -602,9 +645,7 @@ parameter_types! {
 }
 
 impl pallet_evm::Config for Runtime {
-	// type FeeCalculator = BaseFee;
-	// type GasWeightMapping = FixedGasWeightMapping;
-	// type BlockHashMapping = pallet_ethereum::EthereumBlockHashMapping<Self>;
+	// TODO implement the unit types
 	type FeeCalculator = ();
 	type GasWeightMapping = ();
 	type BlockHashMapping = EthereumBlockHashMapping<Self>;
@@ -619,7 +660,7 @@ impl pallet_evm::Config for Runtime {
 	type ChainId = ChainId;
 	type BlockGasLimit = BlockGasLimit;
 	type OnChargeTransaction = ();
-	type FindAuthor = FindAuthorTruncated<Babe>;
+	type FindAuthor = FindAuthorTruncated<Babe>; // TODO verify this
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -644,6 +685,9 @@ construct_runtime!(
 		Sudo: pallet_sudo,
 		EVM: pallet_evm,
 		Ethereum: pallet_ethereum,
+		DynamicFee: pallet_dynamic_fee,
+		BaseFee: pallet_base_fee,
+		HotfixSufficients: pallet_hotfix_sufficients,
 	}
 );
 
