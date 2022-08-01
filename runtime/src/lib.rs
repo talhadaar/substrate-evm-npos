@@ -17,14 +17,14 @@ use pallet_grandpa::{
 };
 use pallet_session::historical as session_historical;
 use sp_api::impl_runtime_apis;
-use sp_core::{crypto::KeyTypeId, OpaqueMetadata, H160, U256};
+use sp_core::{crypto::{KeyTypeId, ByteArray}, OpaqueMetadata, H160, U256};
 use sp_runtime::{
 	create_runtime_str,
 	curve::PiecewiseLinear,
 	generic, impl_opaque_keys,
 	traits::{
 		AccountIdLookup, BlakeTwo256, Block as BlockT, DispatchInfoOf, Dispatchable,
-		IdentifyAccount, NumberFor, OpaqueKeys, PostDispatchInfoOf, Verify,
+		IdentifyAccount, NumberFor, OpaqueKeys, PostDispatchInfoOf, Verify, PhantomData
 	},
 	transaction_validity::{
 		TransactionPriority, TransactionSource, TransactionValidity, TransactionValidityError,
@@ -581,6 +581,20 @@ impl pallet_ethereum::Config for Runtime {
 	type StateRoot = pallet_ethereum::IntermediateStateRoot<Self>;
 }
 
+pub struct FindAuthorTruncated<F>(PhantomData<F>);
+impl<F: FindAuthor<u32>> FindAuthor<H160> for FindAuthorTruncated<F> {
+	fn find_author<'a, I>(digests: I) -> Option<H160>
+	where
+		I: 'a + IntoIterator<Item = (ConsensusEngineId, &'a [u8])>,
+	{
+		if let Some(author_index) = F::find_author(digests) {
+			let authority_id = Babe::authorities()[author_index as usize].clone().0;
+			return Some(H160::from_slice(&authority_id.to_raw_vec()[4..24]));
+		}
+		None
+	}
+}
+
 parameter_types! {
 	pub const ChainId: u64 = 421;
 	pub BlockGasLimit: U256 = U256::from(u32::MAX);
@@ -605,8 +619,7 @@ impl pallet_evm::Config for Runtime {
 	type ChainId = ChainId;
 	type BlockGasLimit = BlockGasLimit;
 	type OnChargeTransaction = ();
-	// type FindAuthor = FindAuthorTruncated<Babe>;
-	type FindAuthor = ();
+	type FindAuthor = FindAuthorTruncated<Babe>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
