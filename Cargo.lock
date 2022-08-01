@@ -2746,6 +2746,7 @@ name = "kories-node"
 version = "4.0.0-dev"
 dependencies = [
  "clap",
+ "fp-evm",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "frame-system",
