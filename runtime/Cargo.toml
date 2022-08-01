@@ -13,8 +13,12 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 serde = { version = "1.0.139", features = ["derive"], optional = true }
-codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"] }
-scale-info = { version = "2.1.1", default-features = false, features = ["derive"] }
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = [
+	"derive",
+] }
+scale-info = { version = "2.1.1", default-features = false, features = [
+	"derive",
+] }
 
 pallet-authorship = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
 pallet-babe = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
@@ -30,10 +34,10 @@ pallet-timestamp = { version = "4.0.0-dev", default-features = false, git = "htt
 pallet-transaction-payment = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
 frame-executive = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
 sp-api = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
-sp-block-builder = {  version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25"}
+sp-block-builder = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
 sp-consensus-babe = { version = "0.10.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
 sp-core = { version = "6.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
-sp-inherents = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25"}
+sp-inherents = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
 sp-offchain = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
 sp-runtime = { version = "6.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
 sp-session = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
@@ -58,14 +62,19 @@ frame-system-benchmarking = { version = "4.0.0-dev", default-features = false, g
 hex-literal = { version = "0.3.4", optional = true }
 
 # FP stuff
-fp-rpc = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.25", default-features = false}
+fp-rpc = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.25", default-features = false }
 fp-self-contained = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.25", default-features = false }
 
 # Etherem stuff
-pallet-ethereum = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.25", default-features = false}
+pallet-ethereum = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.25", default-features = false }
 
 # EVM stuff
 pallet-evm = { default-features = false, git = "https://github.com/paritytech/frontier.git", branch = "polkadot-v0.9.25" }
+
+# EVM precompiles
+pallet-evm-precompile-modexp = { default-features = false, git = "https://github.com/paritytech/frontier.git", branch = "polkadot-v0.9.25" }
+pallet-evm-precompile-sha3fips = { default-features = false, git = "https://github.com/paritytech/frontier.git", branch = "polkadot-v0.9.25" }
+pallet-evm-precompile-simple = { default-features = false, git = "https://github.com/paritytech/frontier.git", branch = "polkadot-v0.9.25" }
 
 [build-dependencies]
 substrate-wasm-builder = { version = "5.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }

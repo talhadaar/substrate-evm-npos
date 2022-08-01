@@ -62,6 +62,9 @@ use pallet_transaction_payment::CurrencyAdapter;
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
 
+mod precompiles;
+use precompiles::EthereumPrecompiles;
+
 /// An index to a block.
 pub type BlockNumber = u32;
 
@@ -581,7 +584,7 @@ impl pallet_ethereum::Config for Runtime {
 parameter_types! {
 	pub const ChainId: u64 = 421;
 	pub BlockGasLimit: U256 = U256::from(u32::MAX);
-	// pub PrecompilesValue: FrontierPrecompiles<Runtime> = FrontierPrecompiles::<_>::new();
+	pub PrecompilesValue: EthereumPrecompiles<Runtime> = EthereumPrecompiles::<_>::new();
 }
 
 impl pallet_evm::Config for Runtime {
@@ -597,10 +600,8 @@ impl pallet_evm::Config for Runtime {
 	type Currency = Balances;
 	type Event = Event;
 	type Runner = pallet_evm::runner::stack::Runner<Self>;
-	// type PrecompilesType = FrontierPrecompiles<Self>;
-	// type PrecompilesValue = PrecompilesValue;
-	type PrecompilesType = ();
-	type PrecompilesValue = ();
+	type PrecompilesType = EthereumPrecompiles<Self>;
+	type PrecompilesValue = PrecompilesValue;
 	type ChainId = ChainId;
 	type BlockGasLimit = BlockGasLimit;
 	type OnChargeTransaction = ();
