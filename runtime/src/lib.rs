@@ -324,7 +324,7 @@ impl pallet_balances::Config for Runtime {
 	type DustRemoval = ();
 	type ExistentialDeposit = ConstU128<500>;
 	type AccountStore = System;
-	type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
+	type WeightInfo = ();
 }
 
 impl pallet_transaction_payment::Config for Runtime {
