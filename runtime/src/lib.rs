@@ -10,7 +10,8 @@ use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
 
 use frame_election_provider_support::{onchain, SequentialPhragmen};
 use frame_system::EnsureRoot;
-use pallet_evm::SubstrateBlockHashMapping;
+// use pallet_evm::SubstrateBlockHashMapping;
+use pallet_ethereum::EthereumBlockHashMapping;
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
@@ -589,7 +590,7 @@ impl pallet_evm::Config for Runtime {
 	// type BlockHashMapping = pallet_ethereum::EthereumBlockHashMapping<Self>;
 	type FeeCalculator = ();
 	type GasWeightMapping = ();
-	type BlockHashMapping = SubstrateBlockHashMapping<Self>;
+	type BlockHashMapping = EthereumBlockHashMapping<Self>;
 	type CallOrigin = EnsureAddressTruncated;
 	type WithdrawOrigin = EnsureAddressTruncated;
 	type AddressMapping = HashedAddressMapping<BlakeTwo256>;
@@ -716,43 +717,6 @@ impl fp_self_contained::SelfContainedCall for Call {
 		}
 	}
 }
-
-// impl fp_self_contained::SelfContainedCall for Call {
-// 	type SignedInfo = H160;
-
-// 	fn is_self_contained(&self) -> bool {
-// 		match self {
-// 			Call::Ethereum(call) => call.is_self_contained(),
-// 			_ => false,
-// 		}
-// 	}
-
-// 	fn check_self_contained(&self) -> Option<Result<Self::SignedInfo, TransactionValidityError>> {
-// 		match self {
-// 			Call::Ethereum(call) => call.check_self_contained(),
-// 			_ => None,
-// 		}
-// 	}
-
-// 	fn validate_self_contained(&self, info: &Self::SignedInfo) -> Option<TransactionValidity> {
-// 		match self {
-// 			Call::Ethereum(call) => call.validate_self_contained(info),
-// 			_ => None,
-// 		}
-// 	}
-
-// 	fn apply_self_contained(
-// 		self,
-// 		info: Self::SignedInfo,
-// 	) -> Option<sp_runtime::DispatchResultWithInfo<PostDispatchInfoOf<Self>>> {
-// 		match self {
-// 			call @ Call::Ethereum(pallet_ethereum::Call::transact { .. }) => Some(
-// 				call.dispatch(Origin::from(pallet_ethereum::RawOrigin::EthereumTransaction(info))),
-// 			),
-// 			_ => None,
-// 		}
-// 	}
-// }
 
 #[cfg(feature = "runtime-benchmarks")]
 #[macro_use]
