@@ -1,6 +1,7 @@
 use kories_runtime::{
-	AccountId, BabeConfig, Balance, BalancesConfig, DOLLARS, GenesisConfig, GrandpaConfig, SessionConfig,
-	SessionKeys, Signature, StakingConfig, StakerStatus, SudoConfig, SystemConfig, WASM_BINARY,
+	AccountId, BabeConfig, Balance, BalancesConfig, GenesisConfig, GrandpaConfig, SessionConfig,
+	SessionKeys, Signature, StakerStatus, StakingConfig, SudoConfig, SystemConfig, DOLLARS,
+	WASM_BINARY,
 };
 use sc_service::ChainType;
 use sp_consensus_babe::AuthorityId as BabeId;
@@ -33,7 +34,11 @@ where
 
 /// Generate an Aura authority key.
 pub fn authority_keys_from_seed(s: &str) -> (AccountId, BabeId, GrandpaId) {
-	(get_account_id_from_seed::<sr25519::Public>(s), get_from_seed::<BabeId>(s), get_from_seed::<GrandpaId>(s))
+	(
+		get_account_id_from_seed::<sr25519::Public>(s),
+		get_from_seed::<BabeId>(s),
+		get_from_seed::<GrandpaId>(s),
+	)
 }
 
 pub fn development_config() -> Result<ChainSpec, String> {
@@ -165,20 +170,18 @@ fn testnet_genesis(
 			authorities: vec![],
 			epoch_config: Some(kories_runtime::BABE_GENESIS_EPOCH_CONFIG),
 		},
-		grandpa: GrandpaConfig {
-			authorities: vec![],
-		},
+		grandpa: GrandpaConfig { authorities: vec![] },
 		session: SessionConfig {
 			keys: initial_authorities
-			.iter()
-			.map(|x| {
-				(
-					x.0.clone(),
-					x.0.clone(),
-					SessionKeys { babe: x.1.clone(), grandpa: x.2.clone() },
-				)
-			})
-			.collect::<Vec<_>>(),
+				.iter()
+				.map(|x| {
+					(
+						x.0.clone(),
+						x.0.clone(),
+						SessionKeys { babe: x.1.clone(), grandpa: x.2.clone() },
+					)
+				})
+				.collect::<Vec<_>>(),
 		},
 		staking: StakingConfig {
 			validator_count: initial_authorities.len() as u32,
@@ -193,5 +196,6 @@ fn testnet_genesis(
 			key: Some(root_key),
 		},
 		transaction_payment: Default::default(),
+		evm: Default::default(),
 	}
 }

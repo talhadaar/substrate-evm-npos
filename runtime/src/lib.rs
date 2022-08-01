@@ -6,16 +6,25 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-use frame_system::EnsureRoot;
+use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
+
 use frame_election_provider_support::{onchain, SequentialPhragmen};
+use frame_system::EnsureRoot;
+use pallet_evm::SubstrateBlockHashMapping;
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
+use pallet_session::historical as session_historical;
 use sp_api::impl_runtime_apis;
-use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
+use sp_core::{crypto::KeyTypeId, OpaqueMetadata, U256};
 use sp_runtime::{
-	create_runtime_str, curve::PiecewiseLinear, generic, impl_opaque_keys,
-	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, NumberFor, OpaqueKeys, Verify},
+	create_runtime_str,
+	curve::PiecewiseLinear,
+	generic, impl_opaque_keys,
+	traits::{
+		AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, NumberFor, OpaqueKeys,
+		Verify,
+	},
 	transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, MultiSignature,
 };
@@ -23,7 +32,6 @@ use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
-use pallet_session::historical as session_historical;
 
 #[cfg(any(feature = "std", test))]
 pub use pallet_staking::StakerStatus;
@@ -34,13 +42,14 @@ mod bag_thresholds;
 pub use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{
-		ConstU128, ConstU32, ConstU64, ConstU8, KeyOwnerProofSystem, Randomness, StorageInfo,
+		ConstU128, ConstU32, ConstU64, ConstU8, FindAuthor, KeyOwnerProofSystem, Randomness,
+		StorageInfo,
 	},
 	weights::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
 		DispatchClass, IdentityFee, Weight,
 	},
-	StorageValue,
+	ConsensusEngineId, StorageValue,
 };
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
@@ -359,7 +368,6 @@ const fn deposit(items: u32, bytes: u32) -> Balance {
 	items as Balance * 100 * CENTS + (bytes as Balance) * 5 * MILLICENTS
 }
 
-
 parameter_types! {
 	// phase durations. 1/4 of the last session for each.
 	pub const SignedPhase: u32 = EPOCH_DURATION_IN_SLOTS / 4;
@@ -490,7 +498,6 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 	type MaxElectableTargets = MaxElectableTargets;
 }
 
-
 parameter_types! {
 	pub const BagThresholds: &'static [u64] = &bag_thresholds::THRESHOLDS;
 }
@@ -563,6 +570,36 @@ impl pallet_sudo::Config for Runtime {
 	type Call = Call;
 }
 
+parameter_types! {
+	pub const ChainId: u64 = 421;
+	pub BlockGasLimit: U256 = U256::from(u32::MAX);
+	// pub PrecompilesValue: FrontierPrecompiles<Runtime> = FrontierPrecompiles::<_>::new();
+}
+
+impl pallet_evm::Config for Runtime {
+	// type FeeCalculator = BaseFee;
+	// type GasWeightMapping = FixedGasWeightMapping;
+	// type BlockHashMapping = pallet_ethereum::EthereumBlockHashMapping<Self>;
+	type FeeCalculator = ();
+	type GasWeightMapping = ();
+	type BlockHashMapping = SubstrateBlockHashMapping<Self>;
+	type CallOrigin = EnsureAddressTruncated;
+	type WithdrawOrigin = EnsureAddressTruncated;
+	type AddressMapping = HashedAddressMapping<BlakeTwo256>;
+	type Currency = Balances;
+	type Event = Event;
+	type Runner = pallet_evm::runner::stack::Runner<Self>;
+	// type PrecompilesType = FrontierPrecompiles<Self>;
+	// type PrecompilesValue = PrecompilesValue;
+	type PrecompilesType = ();
+	type PrecompilesValue = ();
+	type ChainId = ChainId;
+	type BlockGasLimit = BlockGasLimit;
+	type OnChargeTransaction = ();
+	// type FindAuthor = FindAuthorTruncated<Babe>;
+	type FindAuthor = ();
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -583,6 +620,7 @@ construct_runtime!(
 		BagsList: pallet_bags_list,
 		Staking: pallet_staking,
 		Sudo: pallet_sudo,
+		EVM: pallet_evm,
 	}
 );
 

@@ -8,8 +8,8 @@ use sc_finality_grandpa::SharedVoterState;
 use sc_keystore::LocalKeystore;
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
-use std::{sync::Arc, time::Duration};
 use sp_runtime::traits::Block as BlockT;
+use std::{sync::Arc, time::Duration};
 
 // Our native executor instance.
 pub struct ExecutorDispatch;
@@ -119,8 +119,7 @@ pub fn new_partial(
 
 	let slot_duration = babe_link.config().slot_duration();
 
-	let import_queue =
-	sc_consensus_babe::import_queue(
+	let import_queue = sc_consensus_babe::import_queue(
 		babe_link.clone(),
 		block_import.clone(),
 		Some(Box::new(justification_import)),
