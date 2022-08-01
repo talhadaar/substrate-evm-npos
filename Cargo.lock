@@ -1653,6 +1653,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "fp-consensus"
+version = "2.0.0-dev"
+source = "git+https://github.com/paritytech/frontier.git?branch=polkadot-v0.9.25#ad35a1fe3c0f3d084dce23f8df68d57362a36846"
+dependencies = [
+ "ethereum",
+ "parity-scale-codec",
+ "sp-core",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "fp-ethereum"
+version = "1.0.0-dev"
+source = "git+https://github.com/paritytech/frontier.git?branch=polkadot-v0.9.25#ad35a1fe3c0f3d084dce23f8df68d57362a36846"
+dependencies = [
+ "ethereum",
+ "ethereum-types",
+ "fp-evm",
+ "frame-support",
+ "parity-scale-codec",
+ "sp-core",
+ "sp-std",
+]
+
+[[package]]
 name = "fp-evm"
 version = "3.0.0-dev"
 source = "git+https://github.com/paritytech/frontier.git?branch=polkadot-v0.9.25#ad35a1fe3c0f3d084dce23f8df68d57362a36846"
@@ -1663,6 +1689,46 @@ dependencies = [
  "serde",
  "sp-core",
  "sp-std",
+]
+
+[[package]]
+name = "fp-rpc"
+version = "3.0.0-dev"
+source = "git+https://github.com/paritytech/frontier.git?branch=polkadot-v0.9.25#ad35a1fe3c0f3d084dce23f8df68d57362a36846"
+dependencies = [
+ "ethereum",
+ "ethereum-types",
+ "fp-evm",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-api",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "fp-self-contained"
+version = "1.0.0-dev"
+source = "git+https://github.com/paritytech/frontier.git?branch=polkadot-v0.9.25#ad35a1fe3c0f3d084dce23f8df68d57362a36846"
+dependencies = [
+ "ethereum",
+ "frame-support",
+ "parity-scale-codec",
+ "parity-util-mem",
+ "scale-info",
+ "serde",
+ "sp-runtime",
+]
+
+[[package]]
+name = "fp-storage"
+version = "2.0.0"
+source = "git+https://github.com/paritytech/frontier.git?branch=polkadot-v0.9.25#ad35a1fe3c0f3d084dce23f8df68d57362a36846"
+dependencies = [
+ "parity-scale-codec",
+ "serde",
 ]
 
 [[package]]
@@ -2791,6 +2857,8 @@ dependencies = [
 name = "kories-runtime"
 version = "4.0.0-dev"
 dependencies = [
+ "fp-rpc",
+ "fp-self-contained",
  "frame-benchmarking",
  "frame-election-provider-support",
  "frame-executive",
@@ -2805,6 +2873,7 @@ dependencies = [
  "pallet-bags-list",
  "pallet-balances",
  "pallet-election-provider-multi-phase",
+ "pallet-ethereum",
  "pallet-evm",
  "pallet-grandpa",
  "pallet-session",
@@ -4239,6 +4308,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-ethereum"
+version = "4.0.0-dev"
+source = "git+https://github.com/paritytech/frontier.git?branch=polkadot-v0.9.25#ad35a1fe3c0f3d084dce23f8df68d57362a36846"
+dependencies = [
+ "ethereum",
+ "ethereum-types",
+ "evm",
+ "fp-consensus",
+ "fp-ethereum",
+ "fp-evm",
+ "fp-rpc",
+ "fp-self-contained",
+ "fp-storage",
+ "frame-support",
+ "frame-system",
+ "pallet-evm",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "rlp",
+ "scale-info",
+ "serde",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-evm"
 version = "6.0.0-dev"
 source = "git+https://github.com/paritytech/frontier.git?branch=polkadot-v0.9.25#ad35a1fe3c0f3d084dce23f8df68d57362a36846"
@@ -4470,8 +4566,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c32561d248d352148124f036cac253a644685a21dc9fea383eb4907d7bd35a8f"
 dependencies = [
  "cfg-if",
+ "ethereum-types",
  "hashbrown 0.12.1",
  "impl-trait-for-tuples",
+ "lru",
  "parity-util-mem-derive",
  "parking_lot 0.12.1",
  "primitive-types",
