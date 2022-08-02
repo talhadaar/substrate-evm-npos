@@ -3,6 +3,8 @@
 use crate::cli::Cli;
 use fc_db::Backend as FrontierBackend;
 use fc_mapping_sync::{MappingSyncWorker, SyncStrategy};
+use fc_rpc::{OverrideHandle, RuntimeApiStorageOverride};
+use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};
 use futures::{future, StreamExt};
 use kories_runtime::{self, opaque::Block, RuntimeApi};
 use sc_cli::SubstrateCli;
@@ -14,7 +16,13 @@ use sc_keystore::LocalKeystore;
 use sc_service::{error::Error as ServiceError, BasePath, Configuration, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sp_runtime::traits::Block as BlockT;
-use std::{path::PathBuf, sync::Arc, time::Duration};
+use std::{
+	collections::BTreeMap,
+	path::PathBuf,
+	sync::{Arc, Mutex},
+	time::Duration,
+};
+
 // Our native executor instance.
 pub struct ExecutorDispatch;
 
@@ -71,12 +79,14 @@ pub fn new_partial(
 				sc_consensus_babe::BabeLink<Block>,
 			),
 			Arc<FrontierBackend<Block>>,
+			Option<FilterPool>,
+			(FeeHistoryCache, FeeHistoryCacheLimit),
 		),
 	>,
 	ServiceError,
 > {
 	if config.keystore_remote.is_some() {
-		return Err(ServiceError::Other("Remote Keystores are not supported.".into()));
+		return Err(ServiceError::Other("Remote Keystores are not supported.".into()))
 	}
 
 	let telemetry = config
@@ -122,6 +132,9 @@ pub fn new_partial(
 
 	let frontier_backend =
 		Arc::new(FrontierBackend::open(&config.database, &db_config_dir(config))?);
+	let filter_pool: Option<FilterPool> = Some(Arc::new(Mutex::new(BTreeMap::new())));
+	let fee_history_cache: FeeHistoryCache = Arc::new(Mutex::new(BTreeMap::new()));
+	let fee_history_cache_limit: FeeHistoryCacheLimit = cli.run.fee_history_limit;
 
 	let (grandpa_block_import, grandpa_link) = sc_finality_grandpa::block_import(
 		client.clone(),
@@ -166,6 +179,7 @@ pub fn new_partial(
 	)?;
 
 	let import_setup = (block_import, grandpa_link, babe_link);
+	let fee_history = (fee_history_cache, fee_history_cache_limit);
 
 	Ok(sc_service::PartialComponents {
 		client,
@@ -175,7 +189,7 @@ pub fn new_partial(
 		keystore_container,
 		select_chain,
 		transaction_pool,
-		other: (telemetry, import_setup, frontier_backend),
+		other: (telemetry, import_setup, frontier_backend, filter_pool, fee_history),
 	})
 }
 
@@ -196,18 +210,17 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 		mut keystore_container,
 		select_chain,
 		transaction_pool,
-		other: (mut telemetry, import_setup, frontier_backend),
+		other: (mut telemetry, import_setup, frontier_backend, filter_pool, fee_history),
 	} = new_partial(&config, cli)?;
 
 	if let Some(url) = &config.keystore_remote {
 		match remote_keystore(url) {
 			Ok(k) => keystore_container.set_remote_keystore(k),
-			Err(e) => {
+			Err(e) =>
 				return Err(ServiceError::Other(format!(
 					"Error hooking up remote keystore for {}: {}",
 					url, e
-				)))
-			},
+				))),
 		};
 	}
 	let grandpa_protocol_name = sc_finality_grandpa::protocol_standard_name(
@@ -247,24 +260,57 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 
 	let role = config.role.clone();
 	let force_authoring = config.force_authoring;
-	let backoff_authoring_blocks: Option<()> = None;
 	let name = config.network.node_name.clone();
 	let enable_grandpa = !config.disable_grandpa;
 	let prometheus_registry = config.prometheus_registry().cloned();
+	// TODO revisit this
+	// let overrides = crate::rpc::overrides_handle(client.clone());
+	let overrides_map = BTreeMap::new();
+	let overrides = Arc::new(OverrideHandle {
+		schemas: overrides_map,
+		fallback: Box::new(RuntimeApiStorageOverride::new(client.clone())),
+	});
+
+	let block_data_cache = Arc::new(fc_rpc::EthBlockDataCacheTask::new(
+		task_manager.spawn_handle(),
+		overrides.clone(),
+		50,
+		50,
+		prometheus_registry.clone(),
+	));
+
+	let (fee_history_cache, fee_history_cache_limit) = fee_history;
 
 	let rpc_extensions_builder = {
 		let client = client.clone();
 		let pool = transaction_pool.clone();
+		let is_authority = role.is_authority();
+		let enable_dev_signer = cli.run.enable_dev_signer;
 		let network = network.clone();
+		let filter_pool = filter_pool.clone();
+		let frontier_backend = frontier_backend.clone();
+		let overrides = overrides.clone();
+		let fee_history_cache = fee_history_cache.clone();
+		let max_past_logs = cli.run.max_past_logs;
 
-		Box::new(move |deny_unsafe, _| {
+		Box::new(move |deny_unsafe, subscription_task_executor| {
 			let deps = crate::rpc::FullDeps {
 				client: client.clone(),
 				pool: pool.clone(),
+				graph: pool.pool().clone(),
 				deny_unsafe,
+				is_authority,
+				enable_dev_signer,
 				network: network.clone(),
+				filter_pool: filter_pool.clone(),
+				backend: frontier_backend.clone(),
+				max_past_logs,
+				fee_history_cache: fee_history_cache.clone(),
+				fee_history_cache_limit,
+				overrides: overrides.clone(),
+				block_data_cache: block_data_cache.clone(),
 			};
-			crate::rpc::create_full(deps).map_err(Into::into)
+			crate::rpc::create_full(deps, subscription_task_executor).map_err(Into::into)
 		})
 	};
 
@@ -288,7 +334,7 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 			client.import_notification_stream(),
 			Duration::new(6, 0),
 			client.clone(),
-			backend,
+			backend.clone(),
 			frontier_backend,
 			3,
 			0,
@@ -347,7 +393,7 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 				}
 			},
 			force_authoring,
-			backoff_authoring_blocks,
+			backoff_authoring_blocks: Option::<()>::None,
 			babe_link,
 			can_author_with,
 			block_proposal_slot_portion: SlotProportion::new(0.5),
