@@ -79,6 +79,9 @@ pallet-base-fee = { default-features = false, git = "https://github.com/parityte
 pallet-dynamic-fee = { default-features = false, git = "https://github.com/paritytech/frontier.git", branch = "polkadot-v0.9.25" }
 pallet-hotfix-sufficients = { default-features = false, git = "https://github.com/paritytech/frontier.git", branch = "polkadot-v0.9.25" }
 
+# node permissions
+pallet-node-authorization = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
+
 [build-dependencies]
 substrate-wasm-builder = { version = "5.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
 
@@ -128,6 +131,7 @@ std = [
 	"pallet-evm-precompile-sha3fips/std",
 	"pallet-evm-precompile-simple/std",
 	"pallet-hotfix-sufficients/std",
+	"pallet-node-authorization/std"
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",

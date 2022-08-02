@@ -1,11 +1,11 @@
 use kories_runtime::{
 	AccountId, BabeConfig, Balance, BalancesConfig, EVMConfig, GenesisConfig, GrandpaConfig,
-	SessionConfig, SessionKeys, Signature, StakerStatus, StakingConfig, SudoConfig, SystemConfig,
-	DOLLARS, WASM_BINARY,
+	NodeAuthorizationConfig, SessionConfig, SessionKeys, Signature, StakerStatus, StakingConfig,
+	SudoConfig, SystemConfig, DOLLARS, WASM_BINARY,
 };
 use sc_service::ChainType;
 use sp_consensus_babe::AuthorityId as BabeId;
-use sp_core::{sr25519, Pair, Public, H160, U256};
+use sp_core::{sr25519, OpaquePeerId, Pair, Public, H160, U256};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::traits::{IdentifyAccount, Verify};
 use std::{collections::BTreeMap, str::FromStr};
@@ -222,5 +222,25 @@ fn testnet_genesis(
 		ethereum: Default::default(),
 		base_fee: Default::default(),
 		dynamic_fee: Default::default(),
+		node_authorization: NodeAuthorizationConfig {
+			nodes: vec![
+				(
+					OpaquePeerId(
+						bs58::decode("12D3KooWBmAwcd4PJNJvfV89HwE48nwkRmAgo8Vy3uQEyNNHBox2")
+							.into_vec()
+							.unwrap(),
+					),
+					endowed_accounts[0].clone(), // Alice
+				),
+				(
+					OpaquePeerId(
+						bs58::decode("12D3KooWQYV9dGMFoRzNStwpXztXaBUjtPqi6aU76ZgUriHhKust")
+							.into_vec()
+							.unwrap(),
+					),
+					endowed_accounts[1].clone(), // Bob
+				),
+			],
+		},
 	}
 }
