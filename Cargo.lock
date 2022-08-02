@@ -1559,6 +1559,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "fc-mapping-sync"
+version = "2.0.0-dev"
+source = "git+https://github.com/paritytech/frontier?branch=polkadot-v0.9.25#ad35a1fe3c0f3d084dce23f8df68d57362a36846"
+dependencies = [
+ "fc-db",
+ "fp-consensus",
+ "fp-rpc",
+ "futures",
+ "futures-timer",
+ "log",
+ "sc-client-api",
+ "sp-api",
+ "sp-blockchain",
+ "sp-runtime",
+]
+
+[[package]]
 name = "fc-rpc"
 version = "2.0.0-dev"
 source = "git+https://github.com/paritytech/frontier?branch=polkadot-v0.9.25#ad35a1fe3c0f3d084dce23f8df68d57362a36846"
@@ -2892,6 +2909,7 @@ version = "4.0.0-dev"
 dependencies = [
  "clap",
  "fc-db",
+ "fc-mapping-sync",
  "fc-rpc",
  "fc-rpc-core",
  "fp-evm",
@@ -2899,6 +2917,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "frame-system",
+ "futures",
  "jsonrpsee",
  "kories-runtime",
  "pallet-transaction-payment",

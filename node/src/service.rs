@@ -1,16 +1,20 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
+use crate::cli::Cli;
+use fc_db::Backend as FrontierBackend;
+use fc_mapping_sync::{MappingSyncWorker, SyncStrategy};
+use futures::{future, StreamExt};
 use kories_runtime::{self, opaque::Block, RuntimeApi};
-use sc_client_api::{BlockBackend, ExecutorProvider};
+use sc_cli::SubstrateCli;
+use sc_client_api::{BlockBackend, BlockchainEvents, ExecutorProvider};
 use sc_consensus_babe::{self, SlotProportion};
 pub use sc_executor::NativeElseWasmExecutor;
 use sc_finality_grandpa::SharedVoterState;
 use sc_keystore::LocalKeystore;
-use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
+use sc_service::{error::Error as ServiceError, BasePath, Configuration, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sp_runtime::traits::Block as BlockT;
-use std::{sync::Arc, time::Duration};
-
+use std::{path::PathBuf, sync::Arc, time::Duration};
 // Our native executor instance.
 pub struct ExecutorDispatch;
 
@@ -38,8 +42,20 @@ type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 type FullGrandpaBlockImport =
 	sc_finality_grandpa::GrandpaBlockImport<FullBackend, Block, FullClient, FullSelectChain>;
 
+pub(crate) fn db_config_dir(config: &Configuration) -> PathBuf {
+	config
+		.base_path
+		.as_ref()
+		.map(|base_path| base_path.config_dir(config.chain_spec.id()))
+		.unwrap_or_else(|| {
+			BasePath::from_project("", "", &Cli::executable_name())
+				.config_dir(config.chain_spec.id())
+		})
+}
+
 pub fn new_partial(
 	config: &Configuration,
+	cli: &Cli,
 ) -> Result<
 	sc_service::PartialComponents<
 		FullClient,
@@ -54,6 +70,7 @@ pub fn new_partial(
 				sc_finality_grandpa::LinkHalf<Block, FullClient, FullSelectChain>,
 				sc_consensus_babe::BabeLink<Block>,
 			),
+			Arc<FrontierBackend<Block>>,
 		),
 	>,
 	ServiceError,
@@ -102,6 +119,9 @@ pub fn new_partial(
 		task_manager.spawn_essential_handle(),
 		client.clone(),
 	);
+
+	let frontier_backend =
+		Arc::new(FrontierBackend::open(&config.database, &db_config_dir(config))?);
 
 	let (grandpa_block_import, grandpa_link) = sc_finality_grandpa::block_import(
 		client.clone(),
@@ -155,7 +175,7 @@ pub fn new_partial(
 		keystore_container,
 		select_chain,
 		transaction_pool,
-		other: (telemetry, import_setup),
+		other: (telemetry, import_setup, frontier_backend),
 	})
 }
 
@@ -167,7 +187,7 @@ fn remote_keystore(_url: &String) -> Result<Arc<LocalKeystore>, &'static str> {
 }
 
 /// Builds a new service for a full client.
-pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> {
+pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, ServiceError> {
 	let sc_service::PartialComponents {
 		client,
 		backend,
@@ -176,8 +196,8 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 		mut keystore_container,
 		select_chain,
 		transaction_pool,
-		other: (mut telemetry, import_setup),
-	} = new_partial(&config)?;
+		other: (mut telemetry, import_setup, frontier_backend),
+	} = new_partial(&config, cli)?;
 
 	if let Some(url) = &config.keystore_remote {
 		match remote_keystore(url) {
@@ -254,11 +274,27 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 		task_manager: &mut task_manager,
 		transaction_pool: transaction_pool.clone(),
 		rpc_builder: rpc_extensions_builder,
-		backend,
+		backend: backend.clone(),
 		system_rpc_tx,
 		config,
 		telemetry: telemetry.as_mut(),
 	})?;
+
+	task_manager.spawn_essential_handle().spawn(
+		"frontier-mapping-sync-worker",
+		None,
+		MappingSyncWorker::new(
+			client.import_notification_stream(),
+			Duration::new(6, 0),
+			client.clone(),
+			backend,
+			frontier_backend,
+			3,
+			0,
+			SyncStrategy::Normal,
+		)
+		.for_each(|()| future::ready(())),
+	);
 
 	let (block_import, grandpa_link, babe_link) = import_setup;
 
