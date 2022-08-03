@@ -216,6 +216,48 @@ fn testnet_genesis(
 						storage: Default::default(),
 					},
 				);
+				map.insert(
+					// H160 address of Heath dev account
+					// Derived from SS58 (42 prefix) address
+                    // Public Address: 0x931f3600a299fd9B24cEfB3BfF79388D19804BeA
+                    // Private Key: 0x0d6dcaaef49272a5411896be8ad16c01c35d6f8c18873387b71fbc734759b0ab
+					// Using the full hex key, truncating to the first 20 bytes (the first 40 hex chars)
+					H160::from_str("931f3600a299fd9B24cEfB3BfF79388D19804BeA")
+						.expect("internal H160 is valid; qed"),
+					fp_evm::GenesisAccount {
+						balance: U256::from(u128::max_value()),
+						code: Default::default(),
+						nonce: Default::default(),
+						storage: Default::default(),
+					},
+				);
+				map.insert(
+					// H160 address of Ethen dev account
+					// Derived from SS58 (42 prefix) address
+                    // Public Address: 0xFf64d3F6efE2317EE2807d223a0Bdc4c0c49dfDB
+                    // Private Key: 0x7dce9bc8babb68fec1409be38c8e1a52650206a7ed90ff956ae8a6d15eeaaef4
+					// Using the full hex key, truncating to the first 20 bytes (the first 40 hex chars)
+					H160::from_str("Ff64d3F6efE2317EE2807d223a0Bdc4c0c49dfDB")
+						.expect("internal H160 is valid; qed"),
+					fp_evm::GenesisAccount {
+						balance: U256::default(),
+						code: Default::default(),
+						nonce: Default::default(),
+						storage: Default::default(),
+					},
+				);
+				map.insert(
+					// H160 address of CI test runner account
+					H160::from_str("6be02d1d3665660d22ff9624b7be0551ee1ac91b")
+						.expect("internal H160 is valid; qed"),
+					fp_evm::GenesisAccount {
+						balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
+							.expect("internal U256 is valid; qed"),
+						code: Default::default(),
+						nonce: Default::default(),
+						storage: Default::default(),
+					},
+				);
 				map
 			},
 		},
