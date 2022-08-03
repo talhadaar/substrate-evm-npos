@@ -6,16 +6,22 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-use frame_system::EnsureRoot;
 use frame_election_provider_support::{onchain, SequentialPhragmen};
+use frame_system::EnsureRoot;
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
+use pallet_session::historical as session_historical;
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
-	create_runtime_str, curve::PiecewiseLinear, generic, impl_opaque_keys,
-	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, NumberFor, OpaqueKeys, Verify},
+	create_runtime_str,
+	curve::PiecewiseLinear,
+	generic, impl_opaque_keys,
+	traits::{
+		AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, NumberFor, OpaqueKeys,
+		Verify,
+	},
 	transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, MultiSignature,
 };
@@ -23,7 +29,6 @@ use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
-use pallet_session::historical as session_historical;
 
 #[cfg(any(feature = "std", test))]
 pub use pallet_staking::StakerStatus;
@@ -111,6 +116,39 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	transaction_version: 12,
 	state_version: 0,
 };
+use frame_support::traits::{Currency, Imbalance, OnUnbalanced};
+use pallet_balances::NegativeImbalance;
+// Logic for the author to get a portion of fees.
+pub struct ToAuthor<R>(sp_std::marker::PhantomData<R>);
+impl<R> OnUnbalanced<NegativeImbalance<R>> for ToAuthor<R>
+where
+	R: pallet_balances::Config + pallet_authorship::Config,
+{
+	fn on_nonzero_unbalanced(amount: NegativeImbalance<R>) {
+		if let Some(author) = <pallet_authorship::Pallet<R>>::author() {
+			<pallet_balances::Pallet<R>>::resolve_creating(&author, amount);
+		}
+	}
+}
+
+pub struct DealWithFees<R>(sp_std::marker::PhantomData<R>);
+impl<R> OnUnbalanced<NegativeImbalance<R>> for DealWithFees<R>
+where
+	R: pallet_balances::Config + pallet_authorship::Config,
+{
+	fn on_unbalanceds<B>(mut fees_then_tips: impl Iterator<Item = NegativeImbalance<R>>) {
+		if let Some(fees) = fees_then_tips.next() {
+			// for fees, 80% to treasury, 20% to author
+			let mut split = fees.ration(80, 20);
+			if let Some(tips) = fees_then_tips.next() {
+				// for tips, if any, 100% to author
+				tips.merge_into(&mut split.1);
+			}
+			// <Treasury<R> as OnUnbalanced<_>>::on_unbalanced(split.0);
+			<ToAuthor<R> as OnUnbalanced<_>>::on_unbalanced(split.1);
+		}
+	}
+}
 
 /// This determines the average expected block time that we are targeting.
 /// Blocks will be produced at a minimum duration defined by `SLOT_DURATION`.
@@ -245,8 +283,8 @@ parameter_types! {
 impl pallet_babe::Config for Runtime {
 	type EpochDuration = EpochDuration;
 	type ExpectedBlockTime = ExpectedBlockTime;
-	type EpochChangeTrigger = pallet_babe::SameAuthoritiesForever;
-	type DisabledValidators = ();
+	type EpochChangeTrigger = pallet_babe::ExternalTrigger;
+	type DisabledValidators = Session;
 
 	type KeyOwnerProofSystem = ();
 
@@ -313,7 +351,7 @@ impl pallet_balances::Config for Runtime {
 }
 
 impl pallet_transaction_payment::Config for Runtime {
-	type OnChargeTransaction = CurrencyAdapter<Balances, ()>;
+	type OnChargeTransaction = CurrencyAdapter<Balances, DealWithFees<Runtime>>;
 	type OperationalFeeMultiplier = ConstU8<5>;
 	type WeightToFee = IdentityFee<Balance>;
 	type LengthToFee = IdentityFee<Balance>;
@@ -358,7 +396,6 @@ impl pallet_session::historical::Config for Runtime {
 const fn deposit(items: u32, bytes: u32) -> Balance {
 	items as Balance * 100 * CENTS + (bytes as Balance) * 5 * MILLICENTS
 }
-
 
 parameter_types! {
 	// phase durations. 1/4 of the last session for each.
@@ -490,7 +527,6 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 	type MaxElectableTargets = MaxElectableTargets;
 }
 
-
 parameter_types! {
 	pub const BagThresholds: &'static [u64] = &bag_thresholds::THRESHOLDS;
 }
@@ -563,6 +599,22 @@ impl pallet_sudo::Config for Runtime {
 	type Call = Call;
 }
 
+parameter_types! {
+	pub const MaxWellKnownNodes: u32 = MaxAuthorities::get();
+	pub const MaxPeerIdLength: u32 = 128;
+}
+
+impl pallet_node_authorization::Config for Runtime {
+	type Event = Event;
+	type MaxWellKnownNodes = MaxWellKnownNodes;
+	type MaxPeerIdLength = MaxPeerIdLength;
+	type AddOrigin = EnsureRoot<AccountId>;
+	type RemoveOrigin = EnsureRoot<AccountId>;
+	type SwapOrigin = EnsureRoot<AccountId>;
+	type ResetOrigin = EnsureRoot<AccountId>;
+	type WeightInfo = ();
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -583,6 +635,7 @@ construct_runtime!(
 		BagsList: pallet_bags_list,
 		Staking: pallet_staking,
 		Sudo: pallet_sudo,
+		NodeAuthorization: pallet_node_authorization,
 	}
 );
 
