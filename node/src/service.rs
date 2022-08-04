@@ -3,7 +3,7 @@
 use crate::cli::Cli;
 use fc_db::Backend as FrontierBackend;
 use fc_mapping_sync::{MappingSyncWorker, SyncStrategy};
-use fc_rpc::{OverrideHandle, EthTask};
+use fc_rpc::{EthTask, OverrideHandle};
 use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};
 use futures::{future, StreamExt};
 use kories_runtime::{self, opaque::Block, RuntimeApi};
@@ -332,7 +332,6 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 		fee_history_cache_limit,
 	);
 
-
 	let (block_import, grandpa_link, babe_link) = import_setup;
 
 	if role.is_authority() {
@@ -487,11 +486,6 @@ fn spawn_frontier_tasks(
 	task_manager.spawn_essential_handle().spawn(
 		"frontier-fee-history",
 		None,
-		EthTask::fee_history_task(
-			client,
-			overrides,
-			fee_history_cache,
-			fee_history_cache_limit,
-		),
+		EthTask::fee_history_task(client, overrides, fee_history_cache, fee_history_cache_limit),
 	);
 }
