@@ -68,6 +68,7 @@ fc-rpc = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0
 fc-db = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.25" }
 fc-mapping-sync = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.25" }
 fc-cli = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.25" }
+fp-storage = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.25" }
 
 # TODO multiple versions of this will exist now
 parity-db = { version = "0.3.14" }

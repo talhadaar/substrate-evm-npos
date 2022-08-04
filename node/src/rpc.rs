@@ -22,13 +22,13 @@ use sc_client_api::{
 };
 use sc_network::NetworkService;
 
-use fc_rpc::{EthBlockDataCacheTask, OverrideHandle, RuntimeApiStorageOverride};
+use fc_rpc::{EthBlockDataCacheTask, OverrideHandle, RuntimeApiStorageOverride, StorageOverride, SchemaV1Override, SchemaV2Override,SchemaV3Override};
 use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};
 use sc_rpc::SubscriptionTaskExecutor;
 use sc_transaction_pool::{ChainApi, Pool};
 use sp_runtime::traits::BlakeTwo256;
 use std::collections::BTreeMap;
-
+use fp_storage::EthereumStorageSchema;
 /// Full client dependencies.
 pub struct FullDeps<C, P, A: ChainApi> {
 	/// The client instance to use.
@@ -61,39 +61,39 @@ pub struct FullDeps<C, P, A: ChainApi> {
 	pub block_data_cache: Arc<EthBlockDataCacheTask<Block>>,
 }
 
-// pub fn overrides_handle<C, BE>(client: Arc<C>) -> Arc<OverrideHandle<Block>>
-// where
-// 	C: ProvideRuntimeApi<Block> + StorageProvider<Block, BE> + AuxStore,
-// 	C: HeaderBackend<Block> + HeaderMetadata<Block, Error = BlockChainError>,
-// 	C: Send + Sync + 'static,
-// 	C::Api: sp_api::ApiExt<Block>
-// 		+ fp_rpc::EthereumRuntimeRPCApi<Block>
-// 		+ fp_rpc::ConvertTransactionRuntimeApi<Block>,
-// 	BE: Backend<Block> + 'static,
-// 	BE::State: StateBackend<BlakeTwo256>,
-// {
-// 	let mut overrides_map = BTreeMap::new();
-// 	// overrides_map.insert(
-// 	// 	EthereumStorageSchema::V1,
-// 	// 	Box::new(SchemaV1Override::new(client.clone()))
-// 	// 		as Box<dyn StorageOverride<_> + Send + Sync>,
-// 	// );
-// 	// overrides_map.insert(
-// 	// 	EthereumStorageSchema::V2,
-// 	// 	Box::new(SchemaV2Override::new(client.clone()))
-// 	// 		as Box<dyn StorageOverride<_> + Send + Sync>,
-// 	// );
-// 	// overrides_map.insert(
-// 	// 	EthereumStorageSchema::V3,
-// 	// 	Box::new(SchemaV3Override::new(client.clone()))
-// 	// 		as Box<dyn StorageOverride<_> + Send + Sync>,
-// 	// );
+pub fn overrides_handle<C, BE>(client: Arc<C>) -> Arc<OverrideHandle<Block>>
+where
+	C: ProvideRuntimeApi<Block> + StorageProvider<Block, BE> + AuxStore,
+	C: HeaderBackend<Block> + HeaderMetadata<Block, Error = BlockChainError>,
+	C: Send + Sync + 'static,
+	C::Api: sp_api::ApiExt<Block>
+		+ fp_rpc::EthereumRuntimeRPCApi<Block>
+		+ fp_rpc::ConvertTransactionRuntimeApi<Block>,
+	BE: Backend<Block> + 'static,
+	BE::State: StateBackend<BlakeTwo256>,
+{
+	let mut overrides_map = BTreeMap::new();
+	overrides_map.insert(
+		EthereumStorageSchema::V1,
+		Box::new(SchemaV1Override::new(client.clone()))
+			as Box<dyn StorageOverride<_> + Send + Sync>,
+	);
+	overrides_map.insert(
+		EthereumStorageSchema::V2,
+		Box::new(SchemaV2Override::new(client.clone()))
+			as Box<dyn StorageOverride<_> + Send + Sync>,
+	);
+	overrides_map.insert(
+		EthereumStorageSchema::V3,
+		Box::new(SchemaV3Override::new(client.clone()))
+			as Box<dyn StorageOverride<_> + Send + Sync>,
+	);
 
-// 	Arc::new(OverrideHandle {
-// 		schemas: overrides_map,
-// 		fallback: Box::new(RuntimeApiStorageOverride::new(client)),
-// 	})
-// }
+	Arc::new(OverrideHandle {
+		schemas: overrides_map,
+		fallback: Box::new(RuntimeApiStorageOverride::new(client)),
+	})
+}
 
 /// Instantiate all full RPC extensions.
 pub fn create_full<C, P, BE, A>(
@@ -104,10 +104,8 @@ where
 	BE: Backend<Block> + 'static,
 	BE::State: StateBackend<BlakeTwo256>,
 	C: BlockchainEvents<Block>,
-	C: ProvideRuntimeApi<Block>,
-	C: StorageProvider<Block, BE>,
+	C: ProvideRuntimeApi<Block> + StorageProvider<Block, BE> + AuxStore,
 	C: HeaderBackend<Block> + HeaderMetadata<Block, Error = BlockChainError> + 'static,
-	C: StorageProvider<Block, BE>,
 	C: Send + Sync + 'static,
 	C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>,
 	C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
@@ -124,7 +122,7 @@ where
 	use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
 	use substrate_frame_rpc_system::{System, SystemApiServer};
 
-	let mut module = RpcModule::new(());
+	let mut io = RpcModule::new(());
 	let FullDeps {
 		client,
 		pool,
@@ -142,27 +140,27 @@ where
 		block_data_cache,
 	} = deps;
 
-	module.merge(System::new(client.clone(), pool.clone(), deny_unsafe).into_rpc())?;
-	module.merge(TransactionPayment::new(client.clone()).into_rpc())?;
+	io.merge(System::new(client.clone(), pool.clone(), deny_unsafe).into_rpc())?;
+	io.merge(TransactionPayment::new(client.clone()).into_rpc())?;
 
 	// Extend this RPC with a custom API by using the following syntax.
 	// `YourRpcStruct` should have a reference to a client, which is needed
 	// to call into the runtime.
 	// `module.merge(YourRpcTrait::into_rpc(YourRpcStruct::new(ReferenceToClient, ...)))?;`
 
-	// // We won't use the override feature
-	// let overrides = Arc::new(OverrideHandle {
-	// 	schemas: BTreeMap::new(),
-	// 	fallback: Box::new(RuntimeApiStorageOverride::new(client.clone())),
-	// });
-
 	// we use no signers
 	let mut signers = Vec::new();
-	// if enable_dev_signer {
-	// 	signers.push(Box::new(fc_rpc::EthDevSigner::new()) as Box<dyn fc_rpc::EthSigner>);
-	// }
+	if enable_dev_signer {
+		signers.push(Box::new(fc_rpc::EthDevSigner::new()) as Box<dyn fc_rpc::EthSigner>);
+	}
 
-	module.merge(
+
+	let mut signers = Vec::new();
+	if enable_dev_signer {
+		signers.push(Box::new(EthDevSigner::new()) as Box<dyn EthSigner>);
+	}
+
+	io.merge(
 		Eth::new(
 			client.clone(),
 			pool.clone(),
@@ -182,7 +180,7 @@ where
 	)?;
 
 	if let Some(filter_pool) = filter_pool {
-		module.merge(
+		io.merge(
 			EthFilter::new(
 				client.clone(),
 				backend,
@@ -195,7 +193,7 @@ where
 		)?;
 	}
 
-	module.merge(
+	io.merge(
 		EthPubSub::new(
 			pool,
 			client.clone(),
@@ -206,7 +204,7 @@ where
 		.into_rpc(),
 	)?;
 
-	module.merge(
+	io.merge(
 		Net::new(
 			client.clone(),
 			network,
@@ -216,7 +214,8 @@ where
 		.into_rpc(),
 	)?;
 
-	module.merge(Web3::new(client).into_rpc())?;
+	io.merge(Web3::new(client).into_rpc())?;
 
-	Ok(module)
+
+	Ok(io)
 }
