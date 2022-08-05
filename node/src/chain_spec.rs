@@ -213,5 +213,6 @@ fn testnet_genesis(
 			],
 		},
 		evm: Default::default(),
+		ethereum: Default::default(),
 	}
 }
