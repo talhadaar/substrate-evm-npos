@@ -5,14 +5,13 @@
 // Make the WASM binary available.
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
-
+use codec::{Encode, Decode};
 use fp_rpc::TransactionStatus;
 use frame_election_provider_support::{onchain, SequentialPhragmen};
 use frame_system::EnsureRoot;
 use pallet_ethereum::{Call::transact, Transaction as EthereumTransaction};
 use pallet_evm::{
 	Account as EVMAccount, EnsureAddressTruncated, HashedAddressMapping, Runner,
-	SubstrateBlockHashMapping,
 };
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
@@ -405,38 +404,38 @@ const fn deposit(items: u32, bytes: u32) -> Balance {
 	items as Balance * 100 * CENTS + (bytes as Balance) * 5 * MILLICENTS
 }
 
-	parameter_types! {
-		// phase durations. 1/4 of the last session for each.
-		// in testing: 1min or half of the session for each
-		pub SignedPhase: u32 =EPOCH_DURATION_IN_BLOCKS / 4;
-		pub UnsignedPhase: u32 = EPOCH_DURATION_IN_BLOCKS / 4;
-	
-		// signed config
-		pub const SignedMaxSubmissions: u32 = 16;
-		pub const SignedMaxRefunds: u32 = 16 / 4;
-		// 40 DOTs fixed deposit..
-		pub const SignedDepositBase: Balance = deposit(2, 0);
-		// 0.01 DOT per KB of solution data.
-		pub const SignedDepositByte: Balance = deposit(0, 10) / 1024;
-		// Each good submission will get 1 DOT as reward
-		pub SignedRewardBase: Balance = 1 * UNITS;
-		pub BetterUnsignedThreshold: Perbill = Perbill::from_rational(5u32, 10_000);
-	
-		// 4 hour session, 1 hour unsigned phase, 32 offchain executions.
-		pub OffchainRepeat: BlockNumber = UnsignedPhase::get() / 32;
-	
-		/// We take the top 22500 nominators as electing voters..
-		pub const MaxElectingVoters: u32 = 22_500;
-		/// ... and all of the validators as electable targets. Whilst this is the case, we cannot and
-		/// shall not increase the size of the validator intentions.
-		pub const MaxElectableTargets: u16 = u16::MAX;
-	
-		pub NposSolutionPriority: TransactionPriority =
-			Perbill::from_percent(90) * TransactionPriority::max_value();
-	
-		pub OffchainSolutionLengthLimit: u32 = u32::MAX;
-		pub OffchainSolutionWeightLimit: Weight = Weight::MAX;
-	}
+parameter_types! {
+	// phase durations. 1/4 of the last session for each.
+	// in testing: 1min or half of the session for each
+	pub SignedPhase: u32 =EPOCH_DURATION_IN_BLOCKS / 4;
+	pub UnsignedPhase: u32 = EPOCH_DURATION_IN_BLOCKS / 4;
+
+	// signed config
+	pub const SignedMaxSubmissions: u32 = 16;
+	pub const SignedMaxRefunds: u32 = 16 / 4;
+	// 40 DOTs fixed deposit..
+	pub const SignedDepositBase: Balance = deposit(2, 0);
+	// 0.01 DOT per KB of solution data.
+	pub const SignedDepositByte: Balance = deposit(0, 10) / 1024;
+	// Each good submission will get 1 DOT as reward
+	pub SignedRewardBase: Balance = 1 * UNITS;
+	pub BetterUnsignedThreshold: Perbill = Perbill::from_rational(5u32, 10_000);
+
+	// 4 hour session, 1 hour unsigned phase, 32 offchain executions.
+	pub OffchainRepeat: BlockNumber = UnsignedPhase::get() / 32;
+
+	/// We take the top 22500 nominators as electing voters..
+	pub const MaxElectingVoters: u32 = 22_500;
+	/// ... and all of the validators as electable targets. Whilst this is the case, we cannot and
+	/// shall not increase the size of the validator intentions.
+	pub const MaxElectableTargets: u16 = u16::MAX;
+
+	pub NposSolutionPriority: TransactionPriority =
+		Perbill::from_percent(90) * TransactionPriority::max_value();
+
+	pub OffchainSolutionLengthLimit: u32 = u32::MAX;
+	pub OffchainSolutionWeightLimit: Weight = Weight::MAX;
+}
 
 frame_election_provider_support::generate_solution_type!(
 	#[compact]
@@ -654,6 +653,29 @@ construct_runtime!(
 		EVM: pallet_evm,
 	}
 );
+
+pub struct TransactionConverter;
+impl fp_rpc::ConvertTransaction<UncheckedExtrinsic> for TransactionConverter {
+	fn convert_transaction(&self, transaction: pallet_ethereum::Transaction) -> UncheckedExtrinsic {
+		UncheckedExtrinsic::new_unsigned(
+			pallet_ethereum::Call::<Runtime>::transact { transaction }.into(),
+		)
+	}
+}
+
+impl fp_rpc::ConvertTransaction<opaque::UncheckedExtrinsic> for TransactionConverter {
+	fn convert_transaction(
+		&self,
+		transaction: pallet_ethereum::Transaction,
+	) -> opaque::UncheckedExtrinsic {
+		let extrinsic = UncheckedExtrinsic::new_unsigned(
+			pallet_ethereum::Call::<Runtime>::transact { transaction }.into(),
+		);
+		let encoded = extrinsic.encode();
+		opaque::UncheckedExtrinsic::decode(&mut &encoded[..])
+			.expect("Encoded extrinsic is always valid")
+	}
+}
 
 /// The address format for describing accounts.
 pub type Address = sp_runtime::MultiAddress<AccountId, ()>;
@@ -1058,6 +1080,14 @@ impl_runtime_apis! {
 
 		fn elasticity() -> Option<Permill> {
 			Some(Permill::default())
+		}
+	}
+
+	impl fp_rpc::ConvertTransactionRuntimeApi<Block> for Runtime {
+		fn convert_transaction(transaction: EthereumTransaction) -> <Block as BlockT>::Extrinsic {
+			UncheckedExtrinsic::new_unsigned(
+				pallet_ethereum::Call::<Runtime>::transact { transaction }.into(),
+			)
 		}
 	}
 
