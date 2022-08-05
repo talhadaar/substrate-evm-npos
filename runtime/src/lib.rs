@@ -8,12 +8,13 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use frame_election_provider_support::{onchain, SequentialPhragmen};
 use frame_system::EnsureRoot;
+use pallet_evm::{Account as EVMAccount, EnsureAddressTruncated, HashedAddressMapping, Runner, SubstrateBlockHashMapping};
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
 use pallet_session::historical as session_historical;
 use sp_api::impl_runtime_apis;
-use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
+use sp_core::{crypto::KeyTypeId, OpaqueMetadata, U256};
 use sp_runtime::{
 	create_runtime_str,
 	curve::PiecewiseLinear,
@@ -397,48 +398,38 @@ const fn deposit(items: u32, bytes: u32) -> Balance {
 	items as Balance * 100 * CENTS + (bytes as Balance) * 5 * MILLICENTS
 }
 
-parameter_types! {
-	// phase durations. 1/4 of the last session for each.
-	pub const SignedPhase: u32 = EPOCH_DURATION_IN_SLOTS / 4;
-	pub const UnsignedPhase: u32 = EPOCH_DURATION_IN_SLOTS / 4;
-
-	// signed config
-	pub const SignedMaxSubmissions: u32 = 128;
-	pub const SignedMaxRefunds: u32 = 16 / 4;
-	pub const SignedDepositBase: Balance = deposit(2, 0);
-	pub const SignedDepositByte: Balance = deposit(0, 10) / 1024;
-	// Each good submission will get 1 WND as reward
-	pub SignedRewardBase: Balance = 1 * UNITS;
-	pub BetterUnsignedThreshold: Perbill = Perbill::from_rational(5u32, 10_000);
-
-	// 1 hour session, 15 minutes unsigned phase, 4 offchain executions.
-	pub OffchainRepeat: BlockNumber = UnsignedPhase::get() / 4;
-
-	/// We take the top 22500 nominators as electing voters..
-	pub const MaxElectingVoters: u32 = 22_500;
-	/// ... and all of the validators as electable targets. Whilst this is the case, we cannot and
-	/// shall not increase the size of the validator intentions.
-	pub const MaxElectableTargets: u16 = u16::MAX;
-	pub const NposSolutionPriority: TransactionPriority = TransactionPriority::max_value() / 2;
-
-	/// A limit for off-chain phragmen unsigned solution submission.
-	///
-	/// We want to keep it as high as possible, but can't risk having it reject,
-	/// so we always subtract the base block execution weight.
-	pub OffchainSolutionWeightLimit: Weight = BlockWeights::get()
-		.get(DispatchClass::Normal)
-		.max_extrinsic
-		.expect("Normal extrinsics have weight limit configured by default; qed")
-		.saturating_sub(BlockExecutionWeight::get());
-
-	/// A limit for off-chain phragmen unsigned solution length.
-	///
-	/// We allow up to 90% of the block's size to be consumed by the solution.
-	pub OffchainSolutionLengthLimit: u32 = Perbill::from_rational(90_u32, 100) *
-		*BlockLength::get()
-		.max
-		.get(DispatchClass::Normal);
-}
+	parameter_types! {
+		// phase durations. 1/4 of the last session for each.
+		// in testing: 1min or half of the session for each
+		pub SignedPhase: u32 =EPOCH_DURATION_IN_BLOCKS / 4;
+		pub UnsignedPhase: u32 = EPOCH_DURATION_IN_BLOCKS / 4;
+	
+		// signed config
+		pub const SignedMaxSubmissions: u32 = 16;
+		pub const SignedMaxRefunds: u32 = 16 / 4;
+		// 40 DOTs fixed deposit..
+		pub const SignedDepositBase: Balance = deposit(2, 0);
+		// 0.01 DOT per KB of solution data.
+		pub const SignedDepositByte: Balance = deposit(0, 10) / 1024;
+		// Each good submission will get 1 DOT as reward
+		pub SignedRewardBase: Balance = 1 * UNITS;
+		pub BetterUnsignedThreshold: Perbill = Perbill::from_rational(5u32, 10_000);
+	
+		// 4 hour session, 1 hour unsigned phase, 32 offchain executions.
+		pub OffchainRepeat: BlockNumber = UnsignedPhase::get() / 32;
+	
+		/// We take the top 22500 nominators as electing voters..
+		pub const MaxElectingVoters: u32 = 22_500;
+		/// ... and all of the validators as electable targets. Whilst this is the case, we cannot and
+		/// shall not increase the size of the validator intentions.
+		pub const MaxElectableTargets: u16 = u16::MAX;
+	
+		pub NposSolutionPriority: TransactionPriority =
+			Perbill::from_percent(90) * TransactionPriority::max_value();
+	
+		pub OffchainSolutionLengthLimit: u32 = u32::MAX;
+		pub OffchainSolutionWeightLimit: Weight = Weight::MAX;
+	}
 
 frame_election_provider_support::generate_solution_type!(
 	#[compact]
@@ -469,28 +460,6 @@ impl pallet_election_provider_multi_phase::BenchmarkingConfig for ElectionBenchm
 	const MAXIMUM_TARGETS: u32 = 300;
 }
 
-impl pallet_election_provider_multi_phase::MinerConfig for Runtime {
-	type AccountId = AccountId;
-	type MaxLength = OffchainSolutionLengthLimit;
-	type MaxWeight = OffchainSolutionWeightLimit;
-	type Solution = NposCompactSolution16;
-	type MaxVotesPerVoter = <
-		<Self as pallet_election_provider_multi_phase::Config>::DataProvider
-		as
-		frame_election_provider_support::ElectionDataProvider
-	>::MaxVotesPerVoter;
-
-	// The unsigned submissions have to respect the weight of the submit_unsigned call, thus their
-	// weight estimate function is wired to this call's weight.
-	fn solution_weight(v: u32, t: u32, a: u32, d: u32) -> Weight {
-		<
-			<Self as pallet_election_provider_multi_phase::Config>::WeightInfo
-			as
-			pallet_election_provider_multi_phase::WeightInfo
-		>::submit_unsigned(v, t, a, d)
-	}
-}
-
 impl pallet_election_provider_multi_phase::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
@@ -503,16 +472,17 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 	type SignedDepositBase = SignedDepositBase;
 	type SignedDepositByte = SignedDepositByte;
 	type SignedDepositWeight = ();
-	type SignedMaxWeight =
-		<Self::MinerConfig as pallet_election_provider_multi_phase::MinerConfig>::MaxWeight;
-	type MinerConfig = Self;
+	type SignedMaxWeight = Self::MinerMaxWeight;
 	type SlashHandler = (); // burn slashes
 	type RewardHandler = (); // nothing to do upon rewards
 	type BetterUnsignedThreshold = BetterUnsignedThreshold;
 	type BetterSignedThreshold = ();
+	type MinerMaxWeight = OffchainSolutionWeightLimit; // For now use the one from staking.
+	type MinerMaxLength = OffchainSolutionLengthLimit;
 	type OffchainRepeat = OffchainRepeat;
 	type MinerTxPriority = NposSolutionPriority;
 	type DataProvider = Staking;
+	type Solution = NposCompactSolution16;
 	type Fallback = onchain::UnboundedExecution<OnChainSeqPhragmen>;
 	type GovernanceFallback = onchain::UnboundedExecution<OnChainSeqPhragmen>;
 	type Solver = SequentialPhragmen<
@@ -526,6 +496,14 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
 	type MaxElectingVoters = MaxElectingVoters;
 	type MaxElectableTargets = MaxElectableTargets;
 }
+
+// impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime
+// where
+// 	Call: From<C>,
+// {
+// 	type Extrinsic = UncheckedExtrinsic;
+// 	type OverarchingCall = Call;
+// }
 
 parameter_types! {
 	pub const BagThresholds: &'static [u64] = &bag_thresholds::THRESHOLDS;
@@ -615,6 +593,30 @@ impl pallet_node_authorization::Config for Runtime {
 	type WeightInfo = ();
 }
 
+parameter_types! {
+	pub const ChainId: u64 = 42;
+	pub BlockGasLimit: U256 = U256::MAX;
+	// pub PrecompilesValue: FrontierPrecompiles<Runtime> = FrontierPrecompiles::<_>::new();
+}
+
+impl pallet_evm::Config for Runtime {
+	type FeeCalculator = ();
+	type GasWeightMapping = ();
+	type BlockHashMapping = SubstrateBlockHashMapping<Self>;
+	type CallOrigin = EnsureAddressTruncated;
+	type WithdrawOrigin = EnsureAddressTruncated;
+	type AddressMapping = HashedAddressMapping<BlakeTwo256>;
+	type Currency = Balances;
+	type Event = Event;
+	type Runner = pallet_evm::runner::stack::Runner<Self>;
+	type PrecompilesType = ();
+	type PrecompilesValue = ();
+	type ChainId = ChainId;
+	type BlockGasLimit = BlockGasLimit;
+	type OnChargeTransaction = ();
+	type FindAuthor = ();
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -636,6 +638,7 @@ construct_runtime!(
 		Staking: pallet_staking,
 		Sudo: pallet_sudo,
 		NodeAuthorization: pallet_node_authorization,
+		EVM: pallet_evm,
 	}
 );
 
