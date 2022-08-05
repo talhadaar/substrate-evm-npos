@@ -122,8 +122,8 @@ where
 		Eth, EthApiServer, EthDevSigner, EthFilter, EthFilterApiServer, EthPubSub,
 		EthPubSubApiServer, EthSigner, Net, NetApiServer, Web3, Web3ApiServer,
 	};
-	use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
-	use substrate_frame_rpc_system::{System, SystemApiServer};
+	use pallet_transaction_payment_rpc::{ TransactionPaymentRpc, TransactionPaymentApiServer};
+	use substrate_frame_rpc_system::{ SystemRpc, SystemApiServer};
 
 	let mut io = RpcModule::new(());
 	let FullDeps {
@@ -143,8 +143,8 @@ where
 		block_data_cache,
 	} = deps;
 
-	io.merge(System::new(client.clone(), pool.clone(), deny_unsafe).into_rpc())?;
-	io.merge(TransactionPayment::new(client.clone()).into_rpc())?;
+	io.merge( SystemRpc::new(client.clone(), pool.clone(), deny_unsafe).into_rpc())?;
+	io.merge( TransactionPaymentRpc::new(client.clone()).into_rpc())?;
 
 	// Extend this RPC with a custom API by using the following syntax.
 	// `YourRpcStruct` should have a reference to a client, which is needed
