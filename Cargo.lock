@@ -1595,6 +1595,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "fc-cli"
+version = "1.0.0-dev"
+source = "git+https://github.com/paritytech/frontier.git?branch=polkadot-v0.9.22#e3e427fa2e5d1200a784679f8015d4774cedc934"
+dependencies = [
+ "clap",
+ "ethereum-types",
+ "fc-db",
+ "fp-rpc",
+ "fp-storage",
+ "sc-cli",
+ "sc-service",
+ "serde",
+ "serde_json",
+ "sp-api",
+ "sp-blockchain",
+ "sp-runtime",
+]
+
+[[package]]
 name = "fc-db"
 version = "2.0.0-dev"
 source = "git+https://github.com/paritytech/frontier.git?branch=polkadot-v0.9.22#e3e427fa2e5d1200a784679f8015d4774cedc934"
@@ -1607,6 +1626,23 @@ dependencies = [
  "sc-client-db",
  "sp-core",
  "sp-database",
+ "sp-runtime",
+]
+
+[[package]]
+name = "fc-mapping-sync"
+version = "2.0.0-dev"
+source = "git+https://github.com/paritytech/frontier.git?branch=polkadot-v0.9.22#e3e427fa2e5d1200a784679f8015d4774cedc934"
+dependencies = [
+ "fc-db",
+ "fp-consensus",
+ "fp-rpc",
+ "futures 0.3.21",
+ "futures-timer",
+ "log",
+ "sc-client-api",
+ "sp-api",
+ "sp-blockchain",
  "sp-runtime",
 ]
 
@@ -2899,6 +2935,9 @@ dependencies = [
  "async-trait",
  "bs58",
  "clap",
+ "fc-cli",
+ "fc-db",
+ "fc-mapping-sync",
  "fc-rpc",
  "fp-rpc",
  "frame-benchmarking",
