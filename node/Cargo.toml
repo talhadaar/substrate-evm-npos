@@ -61,6 +61,10 @@ sc-basic-authorship = {   git = "https://github.com/paritytech/substrate.git", b
 substrate-frame-rpc-system = {   git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.22" }
 pallet-transaction-payment-rpc = {   git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.22" }
 
+sc-network = {   git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.22" }
+fp-rpc = {   git = "https://github.com/paritytech/frontier.git", branch = "polkadot-v0.9.22" }
+fc-rpc = {   git = "https://github.com/paritytech/frontier.git", branch = "polkadot-v0.9.22" }
+
 # These dependencies are used for runtime benchmarking
 frame-benchmarking = {   git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.22" }
 frame-benchmarking-cli = {   git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.22" }

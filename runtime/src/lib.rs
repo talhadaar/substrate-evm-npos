@@ -5,14 +5,12 @@
 // Make the WASM binary available.
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
-use codec::{Encode, Decode};
+use codec::{Decode, Encode};
 use fp_rpc::TransactionStatus;
 use frame_election_provider_support::{onchain, SequentialPhragmen};
 use frame_system::EnsureRoot;
 use pallet_ethereum::{Call::transact, Transaction as EthereumTransaction};
-use pallet_evm::{
-	Account as EVMAccount, EnsureAddressTruncated, HashedAddressMapping, Runner,
-};
+use pallet_evm::{Account as EVMAccount, EnsureAddressTruncated, HashedAddressMapping, Runner};
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
