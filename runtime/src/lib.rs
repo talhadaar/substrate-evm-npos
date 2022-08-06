@@ -60,6 +60,9 @@ use pallet_transaction_payment::CurrencyAdapter;
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
 
+mod precompiles;
+use precompiles::FrontierPrecompiles;
+
 /// An index to a block.
 pub type BlockNumber = u32;
 
@@ -600,7 +603,7 @@ impl pallet_node_authorization::Config for Runtime {
 parameter_types! {
 	pub const ChainId: u64 = 1337;
 	pub BlockGasLimit: U256 = U256::MAX;
-	// pub PrecompilesValue: FrontierPrecompiles<Runtime> = FrontierPrecompiles::<_>::new();
+	pub PrecompilesValue: FrontierPrecompiles<Runtime> = FrontierPrecompiles::<_>::new();
 }
 
 impl pallet_evm::Config for Runtime {
@@ -613,8 +616,8 @@ impl pallet_evm::Config for Runtime {
 	type Currency = Balances;
 	type Event = Event;
 	type Runner = pallet_evm::runner::stack::Runner<Self>;
-	type PrecompilesType = ();
-	type PrecompilesValue = ();
+	type PrecompilesType = FrontierPrecompiles<Self>;
+	type PrecompilesValue = PrecompilesValue;
 	type ChainId = ChainId;
 	type BlockGasLimit = BlockGasLimit;
 	type OnChargeTransaction = ();
