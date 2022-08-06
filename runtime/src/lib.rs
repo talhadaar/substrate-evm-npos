@@ -598,7 +598,7 @@ impl pallet_node_authorization::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ChainId: u64 = 42;
+	pub const ChainId: u64 = 1337;
 	pub BlockGasLimit: U256 = U256::MAX;
 	// pub PrecompilesValue: FrontierPrecompiles<Runtime> = FrontierPrecompiles::<_>::new();
 }

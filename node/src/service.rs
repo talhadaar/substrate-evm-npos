@@ -3,6 +3,7 @@
 use crate::cli::Cli;
 use fc_db::Backend as FrontierBackend;
 use fc_mapping_sync::{MappingSyncWorker, SyncStrategy};
+use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit};
 use futures::{future, StreamExt};
 use kories_runtime::{self, opaque::Block, RuntimeApi};
 use sc_cli::SubstrateCli;
@@ -14,7 +15,12 @@ use sc_keystore::LocalKeystore;
 use sc_service::{error::Error as ServiceError, BasePath, Configuration, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sp_runtime::traits::Block as BlockT;
-use std::{path::PathBuf, sync::Arc, time::Duration};
+use std::{
+	collections::BTreeMap,
+	path::PathBuf,
+	sync::{Arc, Mutex},
+	time::Duration,
+};
 
 pub(crate) fn db_config_dir(config: &Configuration) -> PathBuf {
 	config
@@ -56,6 +62,7 @@ type FullGrandpaBlockImport =
 
 pub fn new_partial(
 	config: &Configuration,
+	cli: &Cli,
 ) -> Result<
 	sc_service::PartialComponents<
 		FullClient,
@@ -71,6 +78,7 @@ pub fn new_partial(
 				sc_consensus_babe::BabeLink<Block>,
 			),
 			Arc<FrontierBackend<Block>>,
+			(FeeHistoryCache, FeeHistoryCacheLimit),
 		),
 	>,
 	ServiceError,
@@ -120,9 +128,12 @@ pub fn new_partial(
 		client.clone(),
 	);
 
+	// TODO revisit to implement filter_pool
 	// open frontier backend
 	let frontier_backend =
 		Arc::new(FrontierBackend::open(&config.database, &db_config_dir(config))?);
+	let fee_history_cache: FeeHistoryCache = Arc::new(Mutex::new(BTreeMap::new()));
+	let fee_history_cache_limit: FeeHistoryCacheLimit = cli.run.fee_history_limit;
 
 	let (grandpa_block_import, grandpa_link) = sc_finality_grandpa::block_import(
 		client.clone(),
@@ -167,6 +178,7 @@ pub fn new_partial(
 	)?;
 
 	let import_setup = (block_import, grandpa_link, babe_link);
+	let fee_history = (fee_history_cache, fee_history_cache_limit);
 
 	Ok(sc_service::PartialComponents {
 		client,
@@ -176,7 +188,7 @@ pub fn new_partial(
 		keystore_container,
 		select_chain,
 		transaction_pool,
-		other: (telemetry, import_setup, frontier_backend),
+		other: (telemetry, import_setup, frontier_backend, fee_history),
 	})
 }
 
@@ -188,7 +200,7 @@ fn remote_keystore(_url: &String) -> Result<Arc<LocalKeystore>, &'static str> {
 }
 
 /// Builds a new service for a full client.
-pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> {
+pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, ServiceError> {
 	let sc_service::PartialComponents {
 		client,
 		backend,
@@ -197,8 +209,14 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 		mut keystore_container,
 		select_chain,
 		transaction_pool,
-		other: (mut telemetry, import_setup, frontier_backend),
-	} = new_partial(&config)?;
+		other:
+			(
+				mut telemetry,
+				import_setup,
+				frontier_backend,
+				(fee_history_cache, fee_history_cache_limit),
+			),
+	} = new_partial(&config, cli)?;
 
 	if let Some(url) = &config.keystore_remote {
 		match remote_keystore(url) {
@@ -251,18 +269,38 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 	let name = config.network.node_name.clone();
 	let enable_grandpa = !config.disable_grandpa;
 	let prometheus_registry = config.prometheus_registry().cloned();
+	let is_authority = config.role.is_authority();
+	let overrides = crate::rpc::overrides_handle(client.clone());
+	let block_data_cache = Arc::new(fc_rpc::EthBlockDataCacheTask::new(
+		task_manager.spawn_handle(),
+		overrides.clone(),
+		50,
+		50,
+		prometheus_registry.clone(),
+	));
 
 	let rpc_extensions_builder = {
 		let client = client.clone();
 		let pool = transaction_pool.clone();
 		let network = network.clone();
+		let fee_history_cache = fee_history_cache.clone();
+		let frontier_backend = frontier_backend.clone();
 
+		// TODO implementing subscription_task_executor: SubscriptionTaskExecutor as second arg to
+		// closure here?
 		Box::new(move |deny_unsafe, _| {
 			let deps = crate::rpc::FullDeps {
 				client: client.clone(),
 				pool: pool.clone(),
 				deny_unsafe,
 				network: network.clone(),
+				graph: pool.pool().clone(),
+				fee_history_cache: fee_history_cache.clone(),
+				fee_history_cache_limit,
+				block_data_cache: block_data_cache.clone(),
+				is_authority,
+				backend: frontier_backend.clone(),
+				overrides: overrides.clone(),
 			};
 			crate::rpc::create_full(deps).map_err(Into::into)
 		})
@@ -281,8 +319,6 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 		telemetry: telemetry.as_mut(),
 	})?;
 
-	let (block_import, grandpa_link, babe_link) = import_setup;
-
 	spawn_frontier_tasks(
 		&task_manager,
 		client.clone(),
@@ -293,6 +329,8 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 		// fee_history_cache,
 		// fee_history_cache_limit,
 	);
+
+	let (block_import, grandpa_link, babe_link) = import_setup;
 
 	if role.is_authority() {
 		let proposer = sc_basic_authorship::ProposerFactory::new(

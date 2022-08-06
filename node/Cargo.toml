@@ -67,6 +67,7 @@ fc-rpc = {   git = "https://github.com/paritytech/frontier.git", branch = "polka
 fc-mapping-sync = {   git = "https://github.com/paritytech/frontier.git", branch = "polkadot-v0.9.22" }
 fc-db = {   git = "https://github.com/paritytech/frontier.git", branch = "polkadot-v0.9.22" }
 fc-cli = {   git = "https://github.com/paritytech/frontier.git", branch = "polkadot-v0.9.22" }
+fc-rpc-core = {   git = "https://github.com/paritytech/frontier.git", branch = "polkadot-v0.9.22" }
 
 # These dependencies are used for runtime benchmarking
 frame-benchmarking = {   git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.22" }
