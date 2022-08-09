@@ -40,6 +40,9 @@ pub use pallet_staking::StakerStatus;
 
 mod bag_thresholds;
 
+#[cfg(feature = "std")]
+pub use fp_evm::GenesisAccount;
+
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
 	construct_runtime, parameter_types,

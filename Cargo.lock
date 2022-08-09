@@ -2991,6 +2991,7 @@ name = "kories-runtime"
 version = "4.0.0-dev"
 dependencies = [
  "async-trait",
+ "fp-evm",
  "fp-rpc",
  "fp-self-contained",
  "frame-benchmarking",
