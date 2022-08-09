@@ -78,6 +78,7 @@ substrate-wasm-builder = { git = "https://github.com/paritytech/substrate.git", 
 [features]
 default = ["std"]
 std = [
+	"serde",
 	"codec/std",
 	"scale-info/std",
 	"frame-election-provider-support/std",
@@ -113,13 +114,12 @@ std = [
 	"pallet-node-authorization/std",
 
 	"pallet-evm/std",
-	"serde",
+	"pallet-ethereum/std",
 	"fp-rpc/std",
 	"fp-self-contained/std",
-	"pallet-ethereum/std",
 	"pallet-evm-precompile-simple/std",
 	"pallet-evm-precompile-sha3fips/std",
-
+	"pallet-evm-precompile-modexp/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
