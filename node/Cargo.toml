@@ -17,8 +17,14 @@ name = "kories-node"
 
 [dependencies]
 bs58 = "0.4.0"
+async-trait = "0.1"
+clap = { version = "3.1", features = ["derive"] }
 futures = "0.3.21"
-clap = { version = "3.1.18", features = ["derive"] }
+log = "0.4.17"
+
+# Parity
+codec = { package = "parity-scale-codec", version = "3.1", features = ["derive"] }
+jsonrpsee = { version = "0.14.0", features = ["server", "macros"] }
 
 sc-cli = { version = "0.10.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25", features = [
     "wasmtime",
@@ -52,7 +58,6 @@ sc-consensus-uncles = { version = "0.10.0-dev", git = "https://github.com/parity
 sp-authorship = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
 
 # These dependencies are used for the node template's RPCs
-jsonrpsee = { version = "0.14.0", features = ["server"] }
 sc-rpc = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
 sp-api = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
 sc-rpc-api = { version = "0.10.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
@@ -78,13 +83,13 @@ frame-benchmarking = { version = "4.0.0-dev", git = "https://github.com/parityte
 frame-benchmarking-cli = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
 
 # Local Dependencies
-kories-runtime = { version = "4.0.0-dev", path = "../runtime" }
+kories-runtime = { path = "../runtime", default-features = false, features = ["std"]}
 
 # CLI-specific dependencies
 try-runtime-cli = { version = "0.10.0-dev", optional = true, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
 
 # EVM stuff
-fp-evm = { git = "https://github.com/paritytech/frontier.git", branch = "polkadot-v0.9.25" }
+# fp-evm = { git = "https://github.com/paritytech/frontier.git", branch = "polkadot-v0.9.25" }
 
 [build-dependencies]
 substrate-build-script-utils = { version = "3.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }

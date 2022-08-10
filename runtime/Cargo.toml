@@ -13,12 +13,15 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 serde = { version = "1.0.139", features = ["derive"], optional = true }
+
+# Parity
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = [
 	"derive",
 ] }
-scale-info = { version = "2.1.1", default-features = false, features = [
+scale-info = { version = "2.1.2", default-features = false, features = [
 	"derive",
 ] }
+
 
 pallet-authorship = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
 pallet-babe = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
@@ -131,7 +134,7 @@ std = [
 	"pallet-evm-precompile-sha3fips/std",
 	"pallet-evm-precompile-simple/std",
 	"pallet-hotfix-sufficients/std",
-	"pallet-node-authorization/std"
+	"pallet-node-authorization/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
