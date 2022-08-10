@@ -82,7 +82,9 @@ frame-benchmarking = { git = "https://github.com/paritytech/substrate.git", bran
 frame-benchmarking-cli = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.22" }
 
 # Local Dependencies
-kories-runtime = { path = "../runtime" }
+kories-runtime = { path = "../runtime", default-features = false, features = [
+    "std",
+] }
 
 # CLI-specific dependencies
 try-runtime-cli = { optional = true, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.22" }
