@@ -179,20 +179,69 @@ pub fn native_version() -> NativeVersion {
 	NativeVersion { runtime_version: VERSION, can_author_with: Default::default() }
 }
 
-type NegativeImbalance = <Balances as Currency<AccountId>>::NegativeImbalance;
 
-pub struct DealWithFees;
-impl OnUnbalanced<NegativeImbalance> for DealWithFees {
-	fn on_unbalanceds<B>(mut fees_then_tips: impl Iterator<Item=NegativeImbalance>) {
+pub struct ToAuthor<R>(sp_std::marker::PhantomData<R>);
+impl<R> OnUnbalanced<NegativeImbalance<R>> for ToAuthor<R>
+where
+	R: pallet_balances::Config + pallet_authorship::Config,
+{
+	fn on_nonzero_unbalanced(amount: NegativeImbalance<R>) {
+		if let Some(author) = <pallet_authorship::Pallet<R>>::author() {
+			<pallet_balances::Pallet<R>>::resolve_creating(&author, amount);
+		}
+	}
+}
+
+pub struct ToValidators<R>(sp_std::marker::PhantomData<R>);
+impl<R> OnUnbalanced<NegativeImbalance<R>> for ToValidators<R>
+where
+	R: pallet_balances::Config + pallet_babe::Config + pallet_session::Config
+	+ pallet_staking::Config,
+{
+	fn on_nonzero_unbalanced(amount: NegativeImbalance<R>) {
+
+
+		// let validators = Validators::<R>::get();
+		// let vid = ValidatorIdOf::convert(validators[0].clone());
+		let validators: Vec<AccountId> = Session::validators();
+		let total_validators = validators.len();
+
+		// <pallet_balances::Pallet<R>>::resolve_creating(validators[0], amount);
+
+	
+		let per_gas_fee = amount / &mut total_validators.into();
+		
+		// let index = 0;
+		// for vid in validators.iter() {
+		// 	<pallet_balances::Pallet<R>>::resolve_creating(&validators[index], amount);
+		// 	index = index + 1;
+		// }
+	}
+}
+
+
+
+use pallet_balances::NegativeImbalance;
+
+pub struct DealWithFees<R>(sp_std::marker::PhantomData<R>);
+impl<R> OnUnbalanced<NegativeImbalance<R>> for DealWithFees<R>
+where
+	R: pallet_balances::Config + pallet_authorship::Config +  pallet_babe::Config + 
+	pallet_session::Config + pallet_staking::Config,
+{
+	fn on_unbalanceds<B>(mut fees_then_tips: impl Iterator<Item = NegativeImbalance<R>>) {
 		if let Some(fees) = fees_then_tips.next() {
 			// for fees, 80% to treasury, 20% to author
 			let mut split = fees.ration(80, 20);
 			if let Some(tips) = fees_then_tips.next() {
-				// for tips, if any, 80% to treasury, 20% to author (though this can be anything)
-				tips.ration_merge_into(80, 20, &mut split);
+				// for tips, if any, 100% to author
+				tips.merge_into(&mut split.1);
 			}
-			// Treasury::on_unbalanced(split.0); 
-			// Author::on_unbalanced(split.1);
+			
+			// <Treasury<R> as OnUnbalanced<_>>::on_unbalanced(split.0);
+			
+			 <ToAuthor<R> as OnUnbalanced<_>>::on_unbalanced(split.1);
+			 <ToValidators<R> as OnUnbalanced<_>>::on_unbalanced(split.0);
 		}
 	}
 }
@@ -355,7 +404,7 @@ impl pallet_balances::Config for Runtime {
 }
 
 impl pallet_transaction_payment::Config for Runtime {
-	type OnChargeTransaction = CurrencyAdapter<Balances, DealWithFees>;
+	type OnChargeTransaction = CurrencyAdapter<Balances, DealWithFees<Runtime>>;
 	type OperationalFeeMultiplier = ConstU8<5>;
 	type WeightToFee = IdentityFee<Balance>;
 	type LengthToFee = IdentityFee<Balance>;
