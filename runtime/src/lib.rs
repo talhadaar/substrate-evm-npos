@@ -15,7 +15,7 @@ use pallet_ethereum::{
 };
 use pallet_evm::{
 	Account as EVMAccount, EVMCurrencyAdapter, EnsureAddressTruncated, FeeCalculator,
-	HashedAddressMapping, Runner,
+	GasWeightMapping, HashedAddressMapping, Runner,
 };
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
@@ -59,7 +59,7 @@ pub use frame_support::{
 	},
 	weights::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
-		DispatchClass, IdentityFee, Weight,
+		ConstantMultiplier, DispatchClass, IdentityFee, Weight,
 	},
 	ConsensusEngineId, StorageValue,
 };
@@ -367,11 +367,16 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = ();
 }
 
+parameter_types! {
+	pub const WeightToFeeMultiplier: Balance = 1 * UNITS;
+	pub const LengthToFeeMultiplier: Balance = 1 * UNITS;
+	pub const OperationalFeeMultiplier: u8 = 5;
+}
 impl pallet_transaction_payment::Config for Runtime {
 	type OnChargeTransaction = CurrencyAdapter<Balances, DealWithFees<Runtime>>;
-	type OperationalFeeMultiplier = ConstU8<5>;
-	type WeightToFee = IdentityFee<Balance>;
-	type LengthToFee = IdentityFee<Balance>;
+	type OperationalFeeMultiplier = OperationalFeeMultiplier;
+	type WeightToFee = ConstantMultiplier<Balance, WeightToFeeMultiplier>;
+	type LengthToFee = ConstantMultiplier<Balance, LengthToFeeMultiplier>;
 	type FeeMultiplierUpdate = ();
 }
 
@@ -675,6 +680,18 @@ impl<F: FindAuthor<u32>> FindAuthor<H160> for FindAuthorTruncated<F> {
 	}
 }
 
+// GAS:WEIGHT == 18:1
+const WEIGHT_PER_GAS: u64 = 1 / 100_000_000_000_000_000;
+pub struct GasWeightMappingStruct;
+impl GasWeightMapping for GasWeightMappingStruct {
+	fn gas_to_weight(gas: u64) -> Weight {
+		gas.saturating_mul(WEIGHT_PER_GAS)
+	}
+	fn weight_to_gas(weight: Weight) -> u64 {
+		weight.wrapping_div(WEIGHT_PER_GAS)
+	}
+}
+
 parameter_types! {
 	pub const ChainId: u64 = 421;
 	pub BlockGasLimit: U256 = U256::from(u32::MAX);
@@ -683,8 +700,8 @@ parameter_types! {
 
 impl pallet_evm::Config for Runtime {
 	// TODO implement the unit types
-	type FeeCalculator = ();
-	type GasWeightMapping = ();
+	type FeeCalculator = BaseFee;
+	type GasWeightMapping = GasWeightMappingStruct;
 	type BlockHashMapping = EthereumBlockHashMapping<Self>;
 	type CallOrigin = EnsureAddressTruncated;
 	type WithdrawOrigin = EnsureAddressTruncated;
