@@ -1,7 +1,7 @@
 [package]
-name = "kories-node"
+name = "nfid-node"
 version = "4.0.0-dev"
-description = "Kories Blockchain"
+description = "NFID Blockchain"
 authors = []
 homepage = ""
 edition = "2021"
@@ -13,7 +13,7 @@ build = "build.rs"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [[bin]]
-name = "kories-node"
+name = "nfid-node"
 
 [dependencies]
 bs58 = "0.4.0"
@@ -83,7 +83,7 @@ frame-benchmarking = { version = "4.0.0-dev", git = "https://github.com/parityte
 frame-benchmarking-cli = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
 
 # Local Dependencies
-kories-runtime = { path = "../runtime", default-features = false, features = ["std"]}
+nfid-runtime = { path = "../runtime", default-features = false, features = ["std"]}
 
 # CLI-specific dependencies
 try-runtime-cli = { version = "0.10.0-dev", optional = true, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
@@ -96,4 +96,4 @@ substrate-build-script-utils = { version = "3.0.0", git = "https://github.com/pa
 
 [features]
 default = []
-runtime-benchmarks = ["kories-runtime/runtime-benchmarks"]
+runtime-benchmarks = ["nfid-runtime/runtime-benchmarks"]

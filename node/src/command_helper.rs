@@ -21,7 +21,7 @@
 
 use crate::service::FullClient;
 
-use kories_runtime as runtime;
+use nfid_runtime as runtime;
 use runtime::SystemCall;
 use sc_cli::Result;
 use sc_client_api::BlockBackend;

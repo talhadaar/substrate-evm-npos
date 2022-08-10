@@ -6,7 +6,7 @@ use fc_mapping_sync::{MappingSyncWorker, SyncStrategy};
 use fc_rpc::{EthTask, OverrideHandle};
 use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};
 use futures::{future, StreamExt};
-use kories_runtime::{self, opaque::Block, RuntimeApi};
+use nfid_runtime::{self, opaque::Block, RuntimeApi};
 use sc_cli::SubstrateCli;
 use sc_client_api::{BlockBackend, BlockchainEvents, ExecutorProvider};
 use sc_consensus_babe::{self, SlotProportion};
@@ -35,11 +35,11 @@ impl sc_executor::NativeExecutionDispatch for ExecutorDispatch {
 	type ExtendHostFunctions = ();
 
 	fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
-		kories_runtime::api::dispatch(method, data)
+		nfid_runtime::api::dispatch(method, data)
 	}
 
 	fn native_version() -> sc_executor::NativeVersion {
-		kories_runtime::native_version()
+		nfid_runtime::native_version()
 	}
 }
 

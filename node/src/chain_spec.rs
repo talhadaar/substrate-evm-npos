@@ -1,4 +1,4 @@
-use kories_runtime::{
+use nfid_runtime::{
 	AccountId, BabeConfig, Balance, BalancesConfig, GenesisConfig, GrandpaConfig,
 	NodeAuthorizationConfig, SessionConfig, SessionKeys, Signature, StakerStatus, StakingConfig,
 	SudoConfig, SystemConfig, DOLLARS, WASM_BINARY,
@@ -47,9 +47,9 @@ pub fn development_config() -> Result<ChainSpec, String> {
 
 	Ok(ChainSpec::from_genesis(
 		// Name
-		"Kories [Dev]",
+		"NFID [Dev]",
 		// ID
-		"kories_test_dev",
+		"nfid_test_dev",
 		ChainType::Development,
 		move || {
 			testnet_genesis(
@@ -81,7 +81,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
 		// Telemetry
 		None,
 		// Protocol ID
-		Some("kories_test"),
+		Some("nfid_test"),
 		//Fork ID
 		None,
 		// Properties
@@ -96,9 +96,9 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 
 	Ok(ChainSpec::from_genesis(
 		// Name
-		"Kories Testnet",
+		"NFID Testnet",
 		// ID
-		"kories_test",
+		"nfid_test",
 		ChainType::Local,
 		move || {
 			testnet_genesis(
@@ -130,7 +130,7 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 		// Telemetry
 		None,
 		// Protocol ID
-		Some("kories_test"),
+		Some("nfid_test"),
 		//Fork ID
 		None,
 		// Properties
@@ -165,7 +165,7 @@ fn testnet_genesis(
 		},
 		babe: BabeConfig {
 			authorities: vec![],
-			epoch_config: Some(kories_runtime::BABE_GENESIS_EPOCH_CONFIG),
+			epoch_config: Some(nfid_runtime::BABE_GENESIS_EPOCH_CONFIG),
 		},
 		grandpa: GrandpaConfig { authorities: vec![] },
 		session: SessionConfig {

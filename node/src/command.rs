@@ -6,14 +6,14 @@ use crate::{
 };
 use fc_db::frontier_database_dir;
 use frame_benchmarking_cli::{BenchmarkCmd, SUBSTRATE_REFERENCE_HARDWARE};
-use kories_runtime::Block;
+use nfid_runtime::Block;
 use sc_cli::{ChainSpec, RuntimeVersion, SubstrateCli};
 use sc_service::{DatabaseSource, PartialComponents};
 use std::sync::Arc;
 
 impl SubstrateCli for Cli {
 	fn impl_name() -> String {
-		"Gossamer Test Node".into()
+		"NFID Test Node".into()
 	}
 
 	fn impl_version() -> String {
@@ -46,7 +46,7 @@ impl SubstrateCli for Cli {
 	}
 
 	fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
-		&kories_runtime::VERSION
+		&nfid_runtime::VERSION
 	}
 }
 
@@ -191,7 +191,7 @@ pub fn run() -> sc_cli::Result<()> {
 			runner.sync_run(|config| {
 				let PartialComponents { client, other, .. } = service::new_partial(&config, &cli)?;
 				let frontier_backend = other.2;
-				cmd.run::<_, kories_runtime::opaque::Block>(client, frontier_backend)
+				cmd.run::<_, nfid_runtime::opaque::Block>(client, frontier_backend)
 			})
 		},
 		None => {

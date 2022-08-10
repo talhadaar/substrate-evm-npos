@@ -1,4 +1,4 @@
-# Kories Node
+# NFID Node
 
 This repository was forked from the
 [Substrate Node Template](https://github.com/substrate-developer-hub/substrate-node-template); the following changes

@@ -1,7 +1,7 @@
 [package]
-name = "kories-runtime"
+name = "nfid-runtime"
 version = "4.0.0-dev"
-description = "Kories Blockchain"
+description = "NFID Blockchain"
 authors = []
 homepage = ""
 edition = "2021"
@@ -85,6 +85,9 @@ pallet-hotfix-sufficients = { default-features = false, git = "https://github.co
 # node permissions
 pallet-node-authorization = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
 
+# custom pallets
+pallet-fee-multipliers = {default-features = false, path = "../pallets/fee_multipliers"}
+
 [build-dependencies]
 substrate-wasm-builder = { version = "5.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
 
@@ -135,6 +138,7 @@ std = [
 	"pallet-evm-precompile-simple/std",
 	"pallet-hotfix-sufficients/std",
 	"pallet-node-authorization/std",
+	"pallet-fee-multipliers/std"
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",

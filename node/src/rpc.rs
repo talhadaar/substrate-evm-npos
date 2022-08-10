@@ -8,7 +8,7 @@
 use std::sync::Arc;
 
 use jsonrpsee::RpcModule;
-use kories_runtime::{opaque::Block, AccountId, Balance, Hash, Index};
+use nfid_runtime::{opaque::Block, AccountId, Balance, Hash, Index};
 pub use sc_rpc_api::DenyUnsafe;
 use sc_transaction_pool_api::TransactionPool;
 use sp_api::ProvideRuntimeApi;
@@ -167,7 +167,7 @@ where
 			client.clone(),
 			pool.clone(),
 			graph,
-			Some(kories_runtime::TransactionConverter),
+			Some(nfid_runtime::TransactionConverter),
 			network.clone(),
 			signers,
 			overrides.clone(),

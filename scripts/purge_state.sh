@@ -5,5 +5,5 @@ declare -a arr=("alice" "bob" "charlie" "dave" "eve" "ferdie")
 for i in "${arr[@]}"
 do
    echo "$i"
-   ./target/release/kories-node purge-chain --base-path /tmp/$i --chain local
+   ./target/release/nfid-node purge-chain --base-path /tmp/$i --chain local
 done
