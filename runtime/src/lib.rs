@@ -368,9 +368,9 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
-	pub const WeightToFeeMultiplier: Balance = 1 * UNITS;
-	pub const LengthToFeeMultiplier: Balance = 1 * UNITS;
-	pub const OperationalFeeMultiplier: u8 = 5;
+	pub const WeightToFeeMultiplier: Balance = 1;
+	pub const LengthToFeeMultiplier: Balance = 1;
+	pub const OperationalFeeMultiplier: u8 = 1;
 }
 impl pallet_transaction_payment::Config for Runtime {
 	type OnChargeTransaction = CurrencyAdapter<Balances, DealWithFees<Runtime>>;
