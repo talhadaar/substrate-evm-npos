@@ -205,21 +205,21 @@ where
 
 
 		// let validators = Validators::<R>::get();
-		// let vid = ValidatorIdOf::convert(validators[0].clone());
+	
 		let validators = R::validators(); 
 		let total_validators = validators.len();
 
+		let fee_vec: Vec<NegativeImbalance<R>, total_validators>;
 
-		//<pallet_balances::Pallet<R>>::resolve_creating(&validators[0], amount);
+		<pallet_balances::Pallet<R>>::resolve_creating(&validators[0], amount);
 
+		//let per_gas_fee = &amount / total_validators.into();
 
-		let per_gas_fee = amount / &mut total_validators.into();
-
-		// let index = 0;
-		// for vid in validators.iter() {
-			//<pallet_balances::Pallet<R>>::resolve_creating(&validators[0], amount);
-		// 	index = index + 1;
-		// }
+		let mut index = 0;
+		for vid in validators.iter() {
+			<pallet_balances::Pallet<R>>::resolve_creating(&validators[index], amount.clone());
+			index = index + 1;
+		}
 	}
 }
 
