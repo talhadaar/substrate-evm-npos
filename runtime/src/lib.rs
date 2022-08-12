@@ -9,6 +9,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 use codec::{Decode, Encode};
 use fp_rpc::TransactionStatus;
 use frame_election_provider_support::{onchain, SequentialPhragmen};
+use frame_support::traits::ValidatorSet;
 use frame_system::EnsureRoot;
 use pallet_ethereum::{
 	Call::transact, EthereumBlockHashMapping, Transaction as EthereumTransaction,
@@ -21,6 +22,7 @@ use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
 use pallet_session::historical as session_historical;
+use pallet_staking::SessionInterface;
 use sp_api::impl_runtime_apis;
 use sp_core::{
 	crypto::{ByteArray, KeyTypeId},
@@ -83,6 +85,7 @@ pub type Signature = MultiSignature;
 /// Some way of identifying an account on the chain. We intentionally make it equivalent
 /// to the public key of our transaction signing scheme.
 pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
+pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 
 /// Balance of an account.
 pub type Balance = u128;
@@ -192,10 +195,39 @@ where
 	}
 }
 
+pub struct ToValidators<R>(sp_std::marker::PhantomData<R>);
+impl<R> OnUnbalanced<NegativeImbalance<R>> for ToValidators<R>
+where
+	R: pallet_balances::Config + pallet_staking::Config + pallet_session::Config
+	+ SessionInterface<AccountIdOf<R>>,
+{
+	fn on_nonzero_unbalanced(amount: NegativeImbalance<R>) {
+
+
+		// let validators = Validators::<R>::get();
+		// let vid = ValidatorIdOf::convert(validators[0].clone());
+		let validators = R::validators(); 
+		let total_validators = validators.len();
+
+
+		//<pallet_balances::Pallet<R>>::resolve_creating(&validators[0], amount);
+
+
+		let per_gas_fee = amount / &mut total_validators.into();
+
+		// let index = 0;
+		// for vid in validators.iter() {
+			//<pallet_balances::Pallet<R>>::resolve_creating(&validators[0], amount);
+		// 	index = index + 1;
+		// }
+	}
+}
+
 pub struct DealWithFees<R>(sp_std::marker::PhantomData<R>);
 impl<R> OnUnbalanced<NegativeImbalance<R>> for DealWithFees<R>
 where
-	R: pallet_balances::Config + pallet_authorship::Config,
+	R: pallet_balances::Config + pallet_authorship::Config + pallet_babe::Config + 
+	pallet_session::Config + pallet_staking::Config + SessionInterface<AccountIdOf<R>>,
 {
 	fn on_unbalanceds<B>(mut fees_then_tips: impl Iterator<Item = NegativeImbalance<R>>) {
 		if let Some(fees) = fees_then_tips.next() {
@@ -206,6 +238,7 @@ where
 			}
 			// <Treasury<R> as OnUnbalanced<_>>::on_unbalanced(split.0);
 			<ToAuthor<R> as OnUnbalanced<_>>::on_unbalanced(split.1);
+			<ToValidators<R> as OnUnbalanced<_>>::on_unbalanced(split.0);
 		}
 	}
 }
