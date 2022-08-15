@@ -733,6 +733,10 @@ impl pallet_node_authorization::Config for Runtime {
 	type WeightInfo = ();
 }
 
+impl pallet_fee_multipliers::Config for Runtime {
+	type Event = Event;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -759,6 +763,7 @@ construct_runtime!(
 		BaseFee: pallet_base_fee,
 		HotfixSufficients: pallet_hotfix_sufficients,
 		NodeAuthorization: pallet_node_authorization,
+		FeeMultipliers: pallet_fee_multipliers
 	}
 );
 
