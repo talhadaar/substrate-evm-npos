@@ -1,4 +1,4 @@
-# NFID Node
+# Substrate Template Node
 
 This repository was forked from the
 [Substrate Node Template](https://github.com/substrate-developer-hub/substrate-node-template); the following changes
